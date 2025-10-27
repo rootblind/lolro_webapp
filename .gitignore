@@ -23,4 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
+# custom ignores
 .env
+frontend/public/
+frontend/src/assets/

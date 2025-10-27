@@ -1,4 +1,4 @@
-import { ZapIcon } from "lucide-react";
+import { ZapIcon, House } from "lucide-react";
 
 const RateLimitedUI = () => {
   return (
@@ -16,6 +16,19 @@ const RateLimitedUI = () => {
             <p className="text-sm text-base-content/70">
               Try again in a minute...
             </p>
+            <div className="py-4">
+              <a href="/" onClick={(e) => {
+                  e.preventDefault();
+                  window.location.href="/"}
+                }
+                className="flex items-center gap-2 ">
+                
+                <House onClick={() => window.location.href="/"} />
+                <span>Back Home</span>
+              </a>
+            </div>
+          </div>
+          <div>
           </div>
         </div>
       </div>

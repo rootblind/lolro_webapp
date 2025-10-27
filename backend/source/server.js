@@ -1,11 +1,13 @@
 const express = require("express");
 const cors = require("cors");
+const session = require("express-session");
+
 const {config} = require("dotenv");
 const path = require("path")
 config();
 
-const {testRounter} = require("./routes/testRoutes.js");
-const {xRoutes} = require("./routes/xRoutes.js");
+const {authRouter} = require("./routes/authRoutes.js");
+
 const { modelsInit } = require("./models/tablesInit.js");
 const { rateLimiter } = require("./middleware/rateLimiter.js");
 
@@ -28,12 +30,20 @@ if(process.env.NODE_ENV !== "production") {
 
 app.use(express.json()); // parse json
 app.use(rateLimiter);
-
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 1000 * 60 * 60 * 24 // milliseconds * seconds * minutes * hours
+    }
+}));
 
 
 // routes
-app.use("/test", testRounter);
-app.use("/x", xRoutes);
+app.use("/api/auth/", authRouter);
 
 if(process.env.NODE_ENV === "production") {
     app.use(express.static(path.join(dirname, "../../frontend/dist")));

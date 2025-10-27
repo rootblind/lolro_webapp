@@ -1,19 +1,27 @@
-import { PlusIcon } from 'lucide-react'
 import { Link } from 'react-router'
+import {oauthURL} from "../utils/utils.js"
+import NavbarUserDropdown from './NabarUserDropdown.jsx'
+import { useSessionContext } from '../context/SessionContext.jsx'
+
 
 const Navbar = () => {
+  const {loading, isAuth} = useSessionContext();
   return (
     <header className='bg-base-300 border-b border-base-content/10'>
-        <div className='mx-auto max-w-6xl p-4'>
+        <div className='mx-auto max-w-7xl p-4'>
             <div className='flex items-center justify-between'>
-                <h1 className='text-3xl font-bold text-primary font-mono tracking-tighter'>
-                    LOLRO
-                </h1>
+                <Link to={"/"}>
+                    <img src={"/icon.svg"} width={"64"} height={"64"} />
+                </Link>
                 <div className='flex items-center gap-4'>
-                    <Link to={"/create"} className="btn btn-primary">
-                        <PlusIcon className='size-5' />
-                        <span>New test</span>
-                    </Link>
+                    {!loading && !isAuth && (
+                        <a href={oauthURL} className="btn btn-primary">
+                            <img src={"src/assets/discord.svg"} width={"32"} height={"32"} />
+                            <span>Log in with Discord</span>
+                        </a>
+                    )}
+                    
+                    {isAuth && ( <NavbarUserDropdown /> )}
                 </div>
 
             </div>
