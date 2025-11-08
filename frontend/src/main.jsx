@@ -8,11 +8,18 @@ import { SessionContextProvider } from './context/SessionContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
     <SessionContextProvider>
-      <App />
+      <BrowserRouter>
+        <App />
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            duration: 3000,
+            className:
+              "bg-base-200 text-base-content border border-base-300 shadow-lg rounded-xl",
+          }}
+        />
+      </BrowserRouter>
     </SessionContextProvider>
-      <Toaster/>
-    </BrowserRouter>
   </StrictMode>,
 )

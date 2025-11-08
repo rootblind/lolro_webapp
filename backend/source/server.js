@@ -10,6 +10,7 @@ const {authRouter} = require("./routes/authRoutes.js");
 
 const { modelsInit } = require("./models/tablesInit.js");
 const { rateLimiter } = require("./middleware/rateLimiter.js");
+const { captchaRouter } = require("./routes/captchaRoutes.js");
 
 
 const app = express();
@@ -23,7 +24,8 @@ const dirname = __dirname;
 if(process.env.NODE_ENV !== "production") {
     app.use(
         cors({
-            origin: `${HOST}:${FRONT_PORT}`
+            origin: `${HOST}:${FRONT_PORT}`,
+            credentials: true
         })
     );
 }
@@ -37,6 +39,7 @@ app.use(session({
     cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
         maxAge: 1000 * 60 * 60 * 24 // milliseconds * seconds * minutes * hours
     }
 }));
@@ -44,6 +47,7 @@ app.use(session({
 
 // routes
 app.use("/api/auth/", authRouter);
+app.use("/api/captcha/", captchaRouter);
 
 if(process.env.NODE_ENV === "production") {
     app.use(express.static(path.join(dirname, "../../frontend/dist")));

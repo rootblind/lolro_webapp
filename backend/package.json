@@ -21,6 +21,7 @@
     "express-session": "^1.18.2",
     "graceful-fs": "^4.2.11",
     "nodemon": "^3.1.10",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "svg-captcha": "^1.4.0"
   }
 }

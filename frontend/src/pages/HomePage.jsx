@@ -1,9 +1,17 @@
 import toast from 'react-hot-toast'
 import { useSessionContext } from "../context/SessionContext"
 import {Link} from "react-router"
+import CaptchaForm from '../components/CaptchaForm'
+import {useState, useEffect} from "react";
+import api from "../utils/axios"
 
 const HomePage = () => {
   const {user, isAuth, isVerified} = useSessionContext();
+  const [captchaSolved, setCaptchaSolved] = useState(false);
+
+  const handleCaptchaSolved = () => {
+    setCaptchaSolved(true);
+  }
 
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center">
@@ -57,11 +65,17 @@ const HomePage = () => {
             <p className="text-gray-500 mb-4 text-lg">
               It seems your account is not verified, proceed with verification to unlock full access to LOLRO.
             </p>
-            <Link to={"/verify"}>
-              <buttom className="btn btn-success btn-lg px-8">
-                Verify
-              </buttom>
-            </Link>
+            
+            {captchaSolved ? (
+              <Link to={"/verify"}>
+                <button className="btn btn-success btn-lg px-8">
+                  Verify
+                </button>
+              </Link>
+            ) : (
+              <CaptchaForm onSolved={handleCaptchaSolved}/>
+            )}
+
             <p className="text-sm text-gray-400 max-w-xs">
               By verifying your account, you agree to our <Link to="/privacy" className="underline text-blue-600">Privacy Policy</Link> and <Link to={"/terms"} className='underline text-blue-600'>Terms of Service</Link>
               <br />

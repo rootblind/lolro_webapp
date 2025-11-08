@@ -10,6 +10,8 @@ export const SessionContextProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isRateLimited, setIsRateLimited] = useState(false);
 
+  const handleRateLimited = () => setIsRateLimited(true);
+
   useEffect(() => {
     const fetchSession = async () => {
       try{
@@ -21,7 +23,7 @@ export const SessionContextProvider = ({ children }) => {
         
       } catch(error) {
         if(error.response?.status === 429) {
-          setIsRateLimited(true);
+          handleRateLimited();
         } else {
           console.error(error);
         }
@@ -32,9 +34,16 @@ export const SessionContextProvider = ({ children }) => {
     fetchSession();
   }, []);
 
+  useEffect(() => {
+    window.addEventListener("rate-limited", handleRateLimited);
+    return () => window.removeEventListener("rate-limited", handleRateLimited)
+  }, [])
+
   return (
-    <SessionContext.Provider value={{ user, setUser, isAuth, setAuth, loading, setLoading,
-        isRateLimited, setIsRateLimited}}>
+    <SessionContext.Provider value={{ 
+        user, setUser, isAuth, setAuth, loading, setLoading,
+        isRateLimited, setIsRateLimited
+      }}>
       {children}
     </SessionContext.Provider>
   );

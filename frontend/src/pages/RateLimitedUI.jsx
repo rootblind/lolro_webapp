@@ -1,6 +1,14 @@
 import { ZapIcon, House } from "lucide-react";
+import { useSessionContext } from "../context/SessionContext";
+import { Navigate } from "react-router";
 
 const RateLimitedUI = () => {
+  const {isRateLimited} = useSessionContext();
+
+  if(!isRateLimited) {
+    return <Navigate to="/" replace />;
+  }
+  
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="bg-primary/10 border border-primary/30 rounded-lg shadow-md">
@@ -16,14 +24,13 @@ const RateLimitedUI = () => {
             <p className="text-sm text-base-content/70">
               Try again in a minute...
             </p>
-            <div className="py-4">
+            <div className="py-4 flex items-center gap-2">
+              <House onClick={() => window.location.href="/"} />
               <a href="/" onClick={(e) => {
                   e.preventDefault();
                   window.location.href="/"}
                 }
-                className="flex items-center gap-2 ">
-                
-                <House onClick={() => window.location.href="/"} />
+              >
                 <span>Back Home</span>
               </a>
             </div>

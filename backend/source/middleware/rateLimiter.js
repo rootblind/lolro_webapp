@@ -7,7 +7,7 @@ const rateLimiter = async (req, res, next) => {
 
         if(!success) {
             return res.status(429).json({
-                message: "rate limited"
+                message: "rate-limited"
             });
         }
         
