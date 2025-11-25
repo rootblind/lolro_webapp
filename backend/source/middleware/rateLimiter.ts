@@ -1,9 +1,11 @@
-const {rateLimit} = require("../config/upstash.js");
+import rateLimit from "../config/upstash.js";
 
-const rateLimiter = async (req, res, next) => {
+import type { Request, Response, NextFunction } from "express";
+
+const rateLimiter = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const key = `login:${req.session?.user?.id || req.ip}`;
-        const {success} = await rateLimit.limit(key);
+        const { success } = await rateLimit.limit(key);
 
         if(!success) {
             return res.status(429).json({
@@ -19,5 +21,4 @@ const rateLimiter = async (req, res, next) => {
     }
 }
 
-
-module.exports = { rateLimiter };
+export default rateLimiter;

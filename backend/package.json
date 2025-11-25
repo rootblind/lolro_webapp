@@ -2,20 +2,24 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "source/server.js",
+  "main": "source/server.ts",
   "scripts": {
-    "dev": "nodemon source/server.js",
-    "start": "node source/server.js"
+    "dev": "nodemon --watch source --exec node --loader ts-node/esm source/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
+    "@fingerprintjs/fingerprintjs": "^5.0.1",
     "@upstash/ratelimit": "^2.0.6",
     "@upstash/redis": "^1.35.6",
     "axios": "^1.12.2",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-session": "^1.18.2",
@@ -23,5 +27,22 @@
     "nodemon": "^3.1.10",
     "pg": "^8.16.3",
     "svg-captcha": "^1.4.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
+    "@jest/globals": "^30.2.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/express-session": "^1.18.2",
+    "@types/graceful-fs": "^4.1.9",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.10.1",
+    "@types/pg": "^8.15.6",
+    "globals": "^16.5.0",
+    "jest": "^30.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   }
 }

@@ -3,6 +3,7 @@ import { useSessionContext } from "../context/SessionContext";
 import Footer from "../components/Footer";
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
+import LoadingComponent from "../components/LoadingComponent";
 
 
 const MainLayout = ({ children }) => {
@@ -19,10 +20,7 @@ const MainLayout = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="text-center text-primary py-10">
-        <h1>Loading...</h1>
-        <span className="loading loading-spinner loading-xl"></span>
-      </div>
+      <LoadingComponent />
     );
   }
 

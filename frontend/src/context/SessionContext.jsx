@@ -9,6 +9,7 @@ export const SessionContextProvider = ({ children }) => {
   const [isVerified, setVerified] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isRateLimited, setIsRateLimited] = useState(false);
+  const [isBanned, setIsBanned] = useState(false);
 
   const handleRateLimited = () => setIsRateLimited(true);
 
@@ -19,6 +20,8 @@ export const SessionContextProvider = ({ children }) => {
         if(res.data.loggedIn) {
           setUser(res.data.user || null);
           setAuth(res.data.loggedIn);
+          setVerified(res.data.user?.verified || false);
+          setIsBanned(res.data.user?.banned || false);
         }
         
       } catch(error) {
@@ -30,6 +33,8 @@ export const SessionContextProvider = ({ children }) => {
       } finally {
         setLoading(false)
       }
+
+
     }
     fetchSession();
   }, []);
@@ -41,8 +46,12 @@ export const SessionContextProvider = ({ children }) => {
 
   return (
     <SessionContext.Provider value={{ 
-        user, setUser, isAuth, setAuth, loading, setLoading,
-        isRateLimited, setIsRateLimited
+        user, setUser,
+        isAuth, setAuth,
+        loading, setLoading,
+        isRateLimited, setIsRateLimited,
+        isVerified, setVerified,
+        isBanned, setIsBanned
       }}>
       {children}
     </SessionContext.Provider>

@@ -1,31 +1,37 @@
-const express = require("express");
-const cors = require("cors");
-const session = require("express-session");
-
-const {config} = require("dotenv");
-const path = require("path")
+import express from "express";
+import cors from "cors";
+import session from "express-session";
+import { config } from "dotenv";
+import path from "path";
+import { get_env_var } from "./utility_modules/utility_methods.js";
 config();
 
-const {authRouter} = require("./routes/authRoutes.js");
-
-const { modelsInit } = require("./models/tablesInit.js");
-const { rateLimiter } = require("./middleware/rateLimiter.js");
-const { captchaRouter } = require("./routes/captchaRoutes.js");
-
+import authRouter from "./routes/authRoutes.js";
+import modelsInit from "./models/modelsInit.js";
+import rateLimiter from "./middleware/rateLimiter.js";
+import captchaRouter from "./routes/captchaRoutes.js";
+import verifyRouter from "./routes/verifyRoutes.js";
+import { fileURLToPath } from "url";
 
 const app = express();
 
-const PORT = process.env.PORT || 5001;
-const HOST = process.env.HOST;
-const FRONT_PORT = process.env.FRONT_PORT || 5173;
-const dirname = __dirname;
+const PORT = Number(get_env_var("PORT"));
+const HOST = get_env_var("HOST");
+const FRONT_PORT = get_env_var("FRONT_PORT");
+const BOT_PORT = get_env_var("BOT_PORT");
+
+const __filename = fileURLToPath(import.meta.url);
+const dirname = path.dirname(__filename);
+
+const allowedOrigins = `${HOST}:${FRONT_PORT}`;
 
 // middleware
 if(process.env.NODE_ENV !== "production") {
     app.use(
         cors({
-            origin: `${HOST}:${FRONT_PORT}`,
+            origin: allowedOrigins,
             credentials: true
+            
         })
     );
 }
@@ -33,7 +39,7 @@ if(process.env.NODE_ENV !== "production") {
 app.use(express.json()); // parse json
 app.use(rateLimiter);
 app.use(session({
-    secret: process.env.SESSION_SECRET,
+    secret: get_env_var("SESSION_SECRET"),
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -48,6 +54,7 @@ app.use(session({
 // routes
 app.use("/api/auth/", authRouter);
 app.use("/api/captcha/", captchaRouter);
+app.use("/api/verify/", verifyRouter);
 
 if(process.env.NODE_ENV === "production") {
     app.use(express.static(path.join(dirname, "../../frontend/dist")));
@@ -69,7 +76,7 @@ if(process.env.NODE_ENV === "production") {
         }
     }
 )().then(() => {
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
         console.log("Server started")
     });
 });
