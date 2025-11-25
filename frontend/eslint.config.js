@@ -1,29 +1,36 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import { defineConfig, globalIgnores } from 'eslint/config'
+import eslintReact from "@eslint-react/eslint-plugin";
+import eslintJs from "@eslint/js";
+import { defineConfig } from "eslint/config";
+import tseslint from "typescript-eslint";
 
-export default defineConfig([
-  globalIgnores(['dist']),
+export default defineConfig(
   {
-    files: ['**/*.{js,jsx}'],
+    files: ["**/*.ts", "**/*.tsx"],
+
+    // Extend recommended rule sets from:
+    // 1. ESLint JS's recommended rules
+    // 2. TypeScript ESLint recommended rules
+    // 3. ESLint React's recommended-typescript rules
     extends: [
-      js.configs.recommended,
-      reactHooks.configs['recommended-latest'],
-      reactRefresh.configs.vite,
+      eslintJs.configs.recommended,
+      tseslint.configs.recommended,
+      eslintReact.configs["recommended-typescript"],
     ],
+
+    // Configure language/parsing options
     languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
+      // Use TypeScript ESLint parser for TypeScript files
+      parser: tseslint.parser,
       parserOptions: {
-        ecmaVersion: 'latest',
-        ecmaFeatures: { jsx: true },
-        sourceType: 'module',
+        // Enable project service for better TypeScript integration
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
+
+    // Custom rule overrides (modify rule levels or disable rules)
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      "@eslint-react/no-missing-key": "warn",
     },
   },
-])
+);

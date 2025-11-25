@@ -21,5 +21,5 @@
     "skipLibCheck": true,
   },
   "include": ["source"],
-  "exclude": ["tests"]
+  "exclude": ["tests", "node_modules", "dist"]
 }

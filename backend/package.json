@@ -4,10 +4,12 @@
   "description": "",
   "main": "source/server.ts",
   "scripts": {
-    "dev": "nodemon --watch source --exec node --loader ts-node/esm source/server.ts",
+    "dev": "nodemon --watch source --ext ts --exec \"npm run build && npm run start\"",
     "build": "tsc",
     "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint source --ext .ts",
+    "lint:fix": "eslint source --ext .ts --fix"
   },
   "keywords": [],
   "author": "",
@@ -32,6 +34,7 @@
     "@babel/core": "^7.28.5",
     "@babel/preset-env": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
+    "@eslint/js": "^9.39.1",
     "@jest/globals": "^30.2.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
@@ -40,9 +43,11 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
+    "eslint": "^9.39.1",
     "globals": "^16.5.0",
     "jest": "^30.2.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.0"
   }
 }

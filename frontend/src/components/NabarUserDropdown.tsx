@@ -7,13 +7,13 @@ import { useSessionContext } from "../context/SessionContext";
 
 const NavbarUserDropdown = () => {
     const [open, setOpen] = useState(false);
-    const ref = useRef(null);
+    const ref = useRef<HTMLDivElement | null>(null);
 
     const {user, setAuth} = useSessionContext();
 
     useEffect(() => {
-        const handleOutsideClick = (e) => {
-            if(ref.current && !ref.current.contains(e.target)) {
+        const handleOutsideClick = (e: MouseEvent) => {
+            if(ref.current && !ref.current.contains(e.target as Node)) {
                 setOpen(false);
             }
         }

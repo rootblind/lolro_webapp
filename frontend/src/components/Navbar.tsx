@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import {oauthURL} from "../utils/utils.js"
-import NavbarUserDropdown from './NabarUserDropdown.jsx'
-import { useSessionContext } from '../context/SessionContext.jsx'
+import NavbarUserDropdown from './NabarUserDropdown.js'
+import { useSessionContext } from '../context/SessionContext.js'
 
 
 const Navbar = () => {

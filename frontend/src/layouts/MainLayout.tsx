@@ -5,8 +5,13 @@ import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
 import LoadingComponent from "../components/LoadingComponent";
 
+import type { ReactNode } from "react"
 
-const MainLayout = ({ children }) => {
+interface MainLayoutProps {
+  children: ReactNode
+}
+
+const MainLayout = ({ children }: MainLayoutProps) => {
   const {loading, isRateLimited} = useSessionContext();
   const navigate = useNavigate();
   const location = useLocation();

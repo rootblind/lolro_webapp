@@ -1,10 +1,14 @@
-import {useState, useEffect} from "react";
+import {useState, useEffect, FormEvent} from "react";
 import {RefreshCcw} from "lucide-react";
 import toast from "react-hot-toast";
 
 import api from "../utils/axios";
 
-const CaptchaForm = ({ onSolved }) => {
+interface CaptchaFormProps {
+    onSolved: () => void
+}
+
+const CaptchaForm = ({ onSolved }: CaptchaFormProps) => {
     const [captchaSVG, setCaptchaSVG] = useState("");
     const [captchaInput, setCaptchaInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -26,7 +30,7 @@ const CaptchaForm = ({ onSolved }) => {
         loadCaptcha();
     }, []);
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
         try {
