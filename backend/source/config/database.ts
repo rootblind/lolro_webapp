@@ -1,4 +1,4 @@
-import { Pool, Client} from "pg";
+import { Pool } from "pg";
 import { get_env_var } from "../utility_modules/utility_methods.js";
 
 const poolConnection = new Pool({
@@ -14,6 +14,7 @@ const poolConnection = new Pool({
 });
 
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function testDB() {
   (async () => {
     const { rows } = await poolConnection.query(`SELECT * FROM public."Test"`);

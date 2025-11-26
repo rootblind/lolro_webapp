@@ -20,9 +20,11 @@ export const createCaptcha = async (req: Request, res: Response) => {
         background: "#f9f9f9"
     });
 
-    req.session.captcha = {}
-    req.session.captcha.text = captcha.text;
-    req.session.captcha.solved = false;
+    req.session.captcha = {
+        text: captcha.text,
+        solved: false
+    }
+    
     res.type("svg");
     return res.status(200).send(captcha.data);
 }
@@ -33,9 +35,14 @@ export const verifyCaptcha = async (req: Request, res: Response) => {
         return res.status(400).json({success: false, message: "Missing input"});
     }
 
+    // eslint-disable-next-line no-constant-condition
     if(true){ //if(captchaInput == req.session.captcha.text) { // uncomment after dev
-        req.session.captcha.solved = true;
-        return res.status(200).json({success: true, message: "Captcha solved"});
+        if(req.session.captcha) {
+            req.session.captcha.solved = true;
+            return res.status(200).json({success: true, message: "Captcha solved"});
+        } else {
+            return res.status(400).json({success: false, message: "The captcha doesn't exist"});
+        }
     } else {
         return res.status(400).json({success: false, message: "Wrong input"});
     }

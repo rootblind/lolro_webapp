@@ -22,10 +22,12 @@
         - no:  The user simply gets access.
 */
 
-import botapi from "../config/botapi.js"
+//import botapi from "../config/botapi.js"
 import { config } from "dotenv";
 import {normalizeComponents, buildHashes, buildCrossBrowserHash} from "../utility_modules/fingerprint_tools.js";
 import type { Request, Response } from "express";
+import { hasValueProp } from "../utility_modules/utility_methods.js";
+import type { Fingerprint } from "../interfaces/helper_types.js";
 
 config();
 
@@ -93,17 +95,31 @@ export const setADN = async (req: Request, res: Response) => {
     const crossHash = buildCrossBrowserHash(rawComponents);
 
     const weights = {
-        platform: normalized.platform?.value || null,
-        timezone: normalized.timezone?.value || null,
-        browserVendor: normalized.vendor?.value || null,
-        fonts: normalized.fonts?.value || null,
-        screenResolution: normalized.screenResolution?.value || null,
-        hardwareConcurrency: normalized.hardwareConcurrency?.value || null,
-        languages: normalized.languages?.value || null,
+        platform: hasValueProp(normalized.platform!) ? 
+            normalized.platform.value ?? null :
+            normalized.platform ?? null,
+        timezone: hasValueProp(normalized.timezone!) ?
+            normalized.timezone.value ?? null :
+            normalized.timezone ?? null,
+        browserVendor: hasValueProp(normalized.vendor!) ?
+            normalized.vendor.value ?? null :
+            normalized.vendor ?? null,
+        fonts: hasValueProp(normalized.fonts!) ?
+            normalized.fonts.value ?? null :
+            normalized.fonts ?? null,
+        screenResolution: hasValueProp(normalized.screenResolution!) ? 
+            normalized.screenResolution.value ?? null :
+            normalized.screenResolution ?? null,
+        hardwareConcurrency: hasValueProp(normalized.hardwareConcurrency!) ? 
+            normalized.hardwareConcurrency.value ?? null :
+            normalized.hardwareConcurrency ?? null,
+        languages: hasValueProp(normalized.languages!) ?
+            normalized.languages.value ?? null :
+            normalized.languages ?? null,
         userAgent: userAgent || null
     };
 
-    const fingerPrint = {
+    const fingerPrint: Fingerprint = {
         hashes,
         crossHash,
         weights
@@ -111,7 +127,8 @@ export const setADN = async (req: Request, res: Response) => {
 
     req.session.identity = {
         createdAt: new Date().toISOString(),
-        fingerprint: fingerPrint
+        fingerprint: fingerPrint,
+        ip: null
     }
 
     res.status(201).json({success: true});
@@ -125,8 +142,13 @@ export const setIP = async (req: Request, res: Response) => {
         });
     }
 
-    req.session.identity.ip = req.ip;
+    if(!req.ip) return res.status(400).json({success: false, error: "Failed to fetch the IP address"});
 
+    if(req.session.identity) {
+        req.session.identity.ip = req.ip;
+    } else {
+        return res.status(400).json({success: false, error: "End-point accessed too early, call /api/verify/adn/ first"})
+    }
     return res.status(201).json({success: true});
 }
 

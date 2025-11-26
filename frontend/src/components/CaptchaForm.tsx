@@ -22,6 +22,7 @@ const CaptchaForm = ({ onSolved }: CaptchaFormProps) => {
             setCaptchaInput("");
         } catch(error) {
             toast.error("Failed to load captcha!");
+            console.error(error);
         }
         setLoading(false);
     };
@@ -43,6 +44,7 @@ const CaptchaForm = ({ onSolved }: CaptchaFormProps) => {
             }
         } catch(error) {
             toast.error("Error verifying");
+            console.error(error);
         } finally {
             setLoading(false);
         }
@@ -61,6 +63,7 @@ const CaptchaForm = ({ onSolved }: CaptchaFormProps) => {
                             <div className="flex flex-row justify-center items-center gap-4 p-4">
                                 <div className="cursor-pointer select-none" 
                                     onClick={loadCaptcha} 
+                                    // eslint-disable-next-line @eslint-react/dom/no-dangerously-set-innerhtml
                                     dangerouslySetInnerHTML={{ __html: captchaSVG}}
                                 />
                                 <button

@@ -1,9 +1,9 @@
-import toast from 'react-hot-toast'
+//import toast from 'react-hot-toast'
 import { useSessionContext } from "../context/SessionContext"
 import {Link} from "react-router"
 import CaptchaForm from '../components/CaptchaForm'
-import {useState, useEffect} from "react";
-import api from "../utils/axios"
+import { useState } from "react";
+//import api from "../utils/axios"
 
 const HomePage = () => {
   const {user, isAuth, isVerified} = useSessionContext();
@@ -20,7 +20,7 @@ const HomePage = () => {
         <h1 className="text-4xl md:text-5xl font-bold mb-4">
           {isAuth ? (
             <div>
-              Welcome, {user.username}
+              Welcome, { user ? user.username : "Guest"}
             </div>
           ) : (
             <div>

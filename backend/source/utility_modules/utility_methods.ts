@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { config } from 'dotenv';
+import type { JsonValue, JsonObject } from "../interfaces/helper_types.js";
 config();
 
 export function get_env_var(name: string) {
@@ -17,7 +18,7 @@ export function dataHasher(data: string): string {
   return crypto.createHash('sha256').update(data).digest('hex');
 }
 
-export function arraysEqual(array1: any[], array2: any[]): boolean {
+export function arraysEqual(array1: unknown[], array2: unknown[]): boolean {
   /**
    * Compare if two arrays are equal
    */
@@ -41,4 +42,8 @@ export function decryptor(data: string): string {
     let decrypted = decipher.update(data, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted;
+}
+
+export function hasValueProp(x: JsonValue): x is JsonObject & { value?: JsonValue } {
+  return typeof x === "object" && x !== null && !Array.isArray(x) && "value" in x;
 }

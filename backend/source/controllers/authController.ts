@@ -2,14 +2,15 @@ import url from "url";
 import axios from "axios";
 import { config } from "dotenv";
 import botapi from "../config/botapi.js";
-import { isUserVerified, putUser, getUserById } from "../repositories/UserRepo.js";
-import { encryptor, get_env_var } from "../utility_modules/utility_methods.js";
+import { isUserVerified, putUser } from "../repositories/UserRepo.js";
+import { get_env_var } from "../utility_modules/utility_methods.js";
 
 import type { Request, Response } from "express";
 import type { User } from "../interfaces/database_types.js";
 config();
 
-const refreshAccessToken = async (refreshToken: any) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const refreshAccessToken = async (refreshToken: string) => {
     const refreshData = new url.URLSearchParams({
         client_id: get_env_var("CLIENT_ID"),
         client_secret: get_env_var("CLIENT_SECRET"),
@@ -69,7 +70,6 @@ export const getDiscordAuth = async (req: Request, res: Response) => {
                 id: userInfo.data.id,
                 username: userInfo.data.username,
                 display_name: userInfo.data.global_name,
-                clan: userInfo.data.clan,
                 mfa: userInfo.data.mfa_enabled,
                 locale: userInfo.data.locale,
                 email: userInfo.data.email,
@@ -114,7 +114,7 @@ export const getDiscordAuth = async (req: Request, res: Response) => {
                     }
                 }
             } catch(error) {
-                console.error("Failed to fatch the member object");
+                console.error("Failed to fetch the member object", error);
             }
             
             req.session.discordRefreshToken = output.data.refresh_token;

@@ -1,11 +1,20 @@
 import "express-session";
-import type { BanInfo, MemberInfo, UserInfo } from "../interfaces/response_types.js";
+import type {  UserInfo } from "../interfaces/response_types.js";
+import type { Fingerprint } from "../interfaces/helper_types.js";
 
 declare module "express-session" {
     interface SessionData {
         user?: UserInfo,
-        discordRefreshToken?: any,
-        captcha?: any,
-        identity?: any
+        discordRefreshToken?: string,
+        captcha?: {
+            text: string,
+            solved: boolean
+        },
+        identity?: {
+            createdAt: string,
+            ip: string | null,
+            fingerprint: Fingerprint
+
+        }
     }
 }

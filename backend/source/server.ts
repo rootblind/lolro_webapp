@@ -18,7 +18,7 @@ const app = express();
 const PORT = Number(get_env_var("PORT"));
 const HOST = get_env_var("HOST");
 const FRONT_PORT = get_env_var("FRONT_PORT");
-const BOT_PORT = get_env_var("BOT_PORT");
+//const BOT_PORT = get_env_var("BOT_PORT");
 
 const __filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(__filename);

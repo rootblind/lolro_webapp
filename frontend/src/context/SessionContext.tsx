@@ -2,14 +2,14 @@ import { createContext, use, useState, useEffect } from "react";
 import type { ReactNode, Dispatch, SetStateAction } from "react";
 import api from "../utils/axios";
 import { isAxiosError } from "axios";
-import { User, UserInfo } from "../utils/data_types";
+import { UserInfo } from "../utils/data_types";
 
 interface SessionContextProviderProps {
   children: ReactNode
 };
 
 interface SessionContextType {
-  user: any | null,
+  user: UserInfo | null,
   setUser: Dispatch<SetStateAction<UserInfo | null>>,
   isAuth: boolean,
   setAuth: Dispatch<SetStateAction<boolean>>,
@@ -27,8 +27,8 @@ const SessionContext = createContext<SessionContextType | null>(null);
 
 export const SessionContextProvider = ({ children }: SessionContextProviderProps) => {
   const [user, setUser] = useState<UserInfo | null>(null);
-  const [isAuth, setAuth] = useState(false);
-  const [isVerified, setVerified] = useState(false);
+  const [isAuth, setIsAuth] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [isBanned, setIsBanned] = useState(false);
@@ -41,8 +41,8 @@ export const SessionContextProvider = ({ children }: SessionContextProviderProps
         const res = await api.get("/auth/me", { withCredentials: true });
         if(res.data.loggedIn) {
           setUser(res.data.user || null);
-          setAuth(res.data.loggedIn);
-          setVerified(res.data.user?.verified || false);
+          setIsAuth(res.data.loggedIn);
+          setIsVerified(res.data.user?.verified || false);
           setIsBanned(res.data.user?.banned || false);
         }
         
@@ -73,10 +73,10 @@ export const SessionContextProvider = ({ children }: SessionContextProviderProps
   return (
     <SessionContext value={{ 
         user, setUser,
-        isAuth, setAuth,
+        isAuth, setAuth: setIsAuth,
         loading, setLoading,
         isRateLimited, setIsRateLimited,
-        isVerified, setVerified,
+        isVerified, setVerified: setIsVerified,
         isBanned, setIsBanned
       }}>
       {children}

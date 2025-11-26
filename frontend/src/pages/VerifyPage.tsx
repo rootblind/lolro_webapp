@@ -3,11 +3,13 @@ import api from "../utils/axios";
 import { useState } from "react";
 
 import LoadingComponent from "../components/LoadingComponent";
-import getBrowserADN from "../utils/adn";
+//import getBrowserADN from "../utils/adn";
 import { useSessionContext } from "../context/SessionContext";
 
 const VerifyPage = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const {isVerified, setVerified} = useSessionContext();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {

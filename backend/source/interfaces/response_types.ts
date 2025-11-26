@@ -15,7 +15,6 @@ interface MemberInfo {
 }
 
 interface UserInfo extends User {
-    clan: any,
     locale: string,
     ban: BanInfo | null,
     member: MemberInfo | null
