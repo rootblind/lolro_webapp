@@ -63,6 +63,7 @@ export function getRiskOptionsFromEnv(): RiskOptions {
         relatedBannedAccountPoints: readNumber("ANTIALT_RELATED_BANNED_ACCOUNT_POINTS"),
         sharedEmailPoints: readNumber("ANTIALT_SHARED_EMAIL_POINTS"),
         relatedVerifiedAccountPoints: readNumber("ANTIALT_RELATED_VERIFIED_ACCOUNT_POINTS"),
+        noAvatarPoints: readNumber("ANTIALT_NO_AVATAR_POINTS"),
         historicalRelationshipPoints: readNumber("ANTIALT_HISTORICAL_RELATIONSHIP_POINTS"),
         sharedIpPoints: readNumber("ANTIALT_SHARED_IP_POINTS"),
         maximumIpPoints: readNumber("ANTIALT_MAX_IP_POINTS"),

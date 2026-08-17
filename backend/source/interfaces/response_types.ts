@@ -19,6 +19,7 @@ interface UserInfo extends User {
     ban: BanInfo | null,
     member: MemberInfo | null,
     isAdmin: boolean,
+    avatar: string | null
 }
 
 export interface UserSession {

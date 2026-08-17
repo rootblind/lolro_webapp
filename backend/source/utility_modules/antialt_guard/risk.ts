@@ -15,11 +15,10 @@ export type RiskLevel =
     | "critical";
 
 export type RiskAction =
-    | "allow"
-    | "record"
-    | "additional_verification"
-    | "manual_review"
-    | "deny_verification";
+    | "allow" // simply verify the user
+    | "additional_verification" // verify the user but log the risk assessment
+    | "manual_review" // log the assessment but require manual moderator verification, no verification given
+    | "deny_verification"; // deny verification and ban the account
 
 export type RiskEvidenceType =
     | "fingerprint_similarity"
@@ -31,7 +30,8 @@ export type RiskEvidenceType =
     | "guild_membership"
     | "account_age"
     | "historical_relationship"
-    | "shared_ip";
+    | "shared_ip"
+    | "no_avatar";
 
 export interface RiskEvidence {
     readonly type: RiskEvidenceType;
@@ -73,6 +73,7 @@ export interface RiskOptions {
     readonly sharedEmailPoints?: number;
     readonly relatedVerifiedAccountPoints?: number;
     readonly historicalRelationshipPoints?: number;
+    readonly noAvatarPoints?: number;
 
     // ip side
     readonly sharedIpPoints?: number;
@@ -86,19 +87,26 @@ export interface RiskOptions {
     readonly highThreshold?: number;
     readonly criticalThreshold?: number;
 }
-// TODO: ADD DISCORD DEFAULT AVATAR AS A RISK
+// TODO: TO ADD:
+// - account age threshold (points added if the account age is under the threshold)
+// - add premium_type as another deduction factor
 const DEFAULT_OPTIONS: Required<RiskOptions> = {
     fingerprintScoreThreshold: 75,
     strongFingerprintScoreThreshold: 85,
     criticalFingerprintScoreThreshold: 92,
     maximumFingerprintPoints: 60,
+
     relatedBannedAccountPoints: 35,
     sharedEmailPoints: 25,
     relatedVerifiedAccountPoints: 5,
     historicalRelationshipPoints: 10,
+    noAvatarPoints: 4,
+
     sharedIpPoints: 8,
     maximumIpPoints: 15,
+
     mfaEnabledReduction: 2,
+
     moderateThreshold: 30,
     highThreshold: 60,
     criticalThreshold: 85,
@@ -183,21 +191,15 @@ export class AntiAltRiskEngine {
         let strongFingerprintRelationship = false;
 
         if (cluster !== undefined) {
-            const strongestEdge = this.getStrongestEdge(
-                relatedEdges,
-            );
+            const strongestEdge = this.getStrongestEdge(relatedEdges);
 
-            strongestFingerprintScore =
-                strongestEdge?.score ?? 0;
+            strongestFingerprintScore = strongestEdge?.score ?? 0;
 
             strongFingerprintRelationship =
                 strongestFingerprintScore >=
                 this.options.strongFingerprintScoreThreshold;
 
-            const fingerprintPoints =
-                this.calculateFingerprintPoints(
-                    relatedEdges,
-                );
+            const fingerprintPoints = this.calculateFingerprintPoints(relatedEdges);
 
             if (fingerprintPoints > 0) {
                 evidence.push({
@@ -205,7 +207,7 @@ export class AntiAltRiskEngine {
                     points: fingerprintPoints,
                     description: this.describeFingerprintEvidence(
                         strongestFingerprintScore,
-                        relatedEdges,
+                        relatedEdges
                     ),
                     relatedAccountIds: clusterRelatedAccountIds,
                 });
@@ -238,49 +240,44 @@ export class AntiAltRiskEngine {
             evidence.push({
                 type: "related_banned_account",
                 points: this.options.relatedBannedAccountPoints,
-                description:
-                    "A technically related Discord account is currently banned from the guild.",
-                relatedAccountIds: bannedAccounts.map(
-                    (related) => related.id,
-                ),
+                description: "A suspected related account is currently banned from the guild.",
+                relatedAccountIds: bannedAccounts.map((related) => related.id)
             });
         }
 
-        const sharedEmailAccounts =
-            this.getSharedEmailAccounts(
-                account,
-                relatedAccounts,
-            );
+        const sharedEmailAccounts = this.getSharedEmailAccounts(
+            account,
+            relatedAccounts
+        );
 
         if (sharedEmailAccounts.length > 0) {
             evidence.push({
                 type: "shared_email",
                 points: this.options.sharedEmailPoints,
-                description:
-                    "The account shares the same normalized email identifier with a technically related account.",
-                relatedAccountIds:
-                    sharedEmailAccounts.map(
-                        (related) => related.id,
-                    ),
+                description: "The account shares the same normalized email identifier with a suspected related account.",
+                relatedAccountIds: sharedEmailAccounts.map((related) => related.id)
             });
         }
 
-        const relatedVerifiedAccounts =
-            relatedAccounts.filter(
-                (related) => related.verified,
-            );
+        const relatedVerifiedAccounts = relatedAccounts.filter((related) => related.verified);
 
         if (relatedVerifiedAccounts.length > 0) {
             evidence.push({
                 type: "related_verified_account",
-                points:
-                    this.options.relatedVerifiedAccountPoints,
-                description:
-                    "A technically related account has previously completed application verification.",
-                relatedAccountIds:
-                    relatedVerifiedAccounts.map(
-                        (related) => related.id,
-                    ),
+                points: this.options.relatedVerifiedAccountPoints,
+                description: "A suspected related account has previously completed application verification.",
+                relatedAccountIds: relatedVerifiedAccounts.map((related) => related.id)
+            });
+        }
+
+        // avatar factor
+        const discordAvatar = account.avatar;
+        if (discordAvatar === null) {
+            evidence.push({
+                type: "no_avatar",
+                points: this.options.noAvatarPoints,
+                description: "This account has no avatar.",
+                relatedAccountIds: []
             });
         }
 
@@ -292,15 +289,12 @@ export class AntiAltRiskEngine {
             if (persistentEdges.length > 0) {
                 evidence.push({
                     type: "historical_relationship",
-                    points:
-                        this.options.historicalRelationshipPoints,
-                    description:
-                        "The fingerprint relationship has been observed repeatedly over time.",
-                    relatedAccountIds:
-                        this.getAccountsFromEdges(
-                            account.id,
-                            persistentEdges,
-                        ),
+                    points: this.options.historicalRelationshipPoints,
+                    description: "The fingerprint relationship has been observed repeatedly over time.",
+                    relatedAccountIds: this.getAccountsFromEdges(
+                        account.id,
+                        persistentEdges,
+                    )
                 });
             }
         }
@@ -314,16 +308,13 @@ export class AntiAltRiskEngine {
             evidence.push({
                 type: "shared_ip",
                 points: ipPoints,
-                description:
-                    "The account has been observed from the same IP address as a technically related account. " +
-                    "This is treated as weak, corroborating evidence only.",
+                description: "The account has been observed from the same IP address as other accounts. ",
                 relatedAccountIds: ipRelated,
             });
         }
 
-        let score = this.sumPositiveEvidence(
-            evidence,
-        );
+        // iterate through RiskEvidence to sum up the score
+        let score = this.sumPositiveEvidence(evidence);
 
         score = this.applyMfaReduction(
             score,
@@ -347,9 +338,7 @@ export class AntiAltRiskEngine {
         );
     }
 
-    private calculateFingerprintPoints(
-        edges: readonly GraphEdge[],
-    ): number {
+    private calculateFingerprintPoints(edges: readonly GraphEdge[]): number {
         if (edges.length === 0) {
             return 0;
         }
@@ -394,76 +383,48 @@ export class AntiAltRiskEngine {
                     this.options.strongFingerprintScoreThreshold,
             ).length;
 
-        points += Math.min(
-            additionalStrong * 3,
-            10,
-        );
+        points += Math.min(additionalStrong * 3, 10);
 
         return Math.min(
             points,
-            this.options.maximumFingerprintPoints,
+            this.options.maximumFingerprintPoints
         );
     }
 
-    private scoreFingerprint(
-        score: number,
-    ): number {
-        if (
-            score >=
-            this.options.criticalFingerprintScoreThreshold
-        ) {
+    private scoreFingerprint(score: number,): number {
+        if (score >= this.options.criticalFingerprintScoreThreshold) {
             return 55;
         }
-
-        if (
-            score >=
-            this.options.strongFingerprintScoreThreshold
-        ) {
+        if (score >= this.options.strongFingerprintScoreThreshold) {
             return 45;
         }
-
-        if (
-            score >=
-            this.options.fingerprintScoreThreshold
-        ) {
+        if (score >= this.options.fingerprintScoreThreshold) {
             return 30;
         }
-
         return 0;
     }
 
-    private applyMfaReduction(
-        score: number,
-        account: DiscordAccountEvidence,
-        evidence: RiskEvidence[],
-    ): number {
+    private applyMfaReduction(score: number, account: DiscordAccountEvidence, evidence: RiskEvidence[]): number {
         if (!account.mfaEnabled) {
             return score;
         }
 
-        const reduced = Math.max(
-            0,
-            score - this.options.mfaEnabledReduction,
-        );
+        // can not be a negative
+        const reduced = Math.max(0, score - this.options.mfaEnabledReduction);
 
         if (reduced !== score) {
             evidence.push({
                 type: "mfa_difference",
-                points:
-                    -this.options.mfaEnabledReduction,
-                description:
-                    "The account has MFA enabled; this is treated as a weak mitigating signal.",
-                relatedAccountIds: [],
+                points: -this.options.mfaEnabledReduction,
+                description: "MFA is enabled on this account. Risk points deducted.",
+                relatedAccountIds: []
             });
         }
 
         return reduced;
     }
 
-    private getAccountEdges(
-        accountId: string,
-        edges: readonly GraphEdge[],
-    ): readonly GraphEdge[] {
+    private getAccountEdges(accountId: string, edges: readonly GraphEdge[]): readonly GraphEdge[] {
         return edges.filter(
             (edge) =>
                 edge.source === accountId ||
@@ -471,9 +432,7 @@ export class AntiAltRiskEngine {
         );
     }
 
-    private getStrongestEdge(
-        edges: readonly GraphEdge[],
-    ): GraphEdge | undefined {
+    private getStrongestEdge(edges: readonly GraphEdge[]): GraphEdge | undefined {
         let strongest: GraphEdge | undefined;
 
         for (const edge of edges) {
@@ -488,19 +447,11 @@ export class AntiAltRiskEngine {
         return strongest;
     }
 
-    private getRelatedAccountIds(
-        accountId: string,
-        cluster: FingerprintCluster,
-    ): readonly string[] {
-        return cluster.accountIds.filter(
-            (id) => id !== accountId,
-        );
+    private getRelatedAccountIds(accountId: string, cluster: FingerprintCluster): readonly string[] {
+        return cluster.accountIds.filter((id) => id !== accountId);
     }
 
-    private getAccountsFromEdges(
-        accountId: string,
-        edges: readonly GraphEdge[],
-    ): readonly string[] {
+    private getAccountsFromEdges(accountId: string, edges: readonly GraphEdge[]): readonly string[] {
         const ids = new Set<string>();
 
         for (const edge of edges) {
@@ -534,19 +485,11 @@ export class AntiAltRiskEngine {
         );
     }
 
-    private sumPositiveEvidence(
-        evidence: readonly RiskEvidence[],
-    ): number {
-        return evidence.reduce(
-            (sum, item) => sum + item.points,
-            0,
-        );
+    private sumPositiveEvidence(evidence: readonly RiskEvidence[]): number {
+        return evidence.reduce((sum, item) => sum + item.points, 0);
     }
 
-    private describeFingerprintEvidence(
-        score: number,
-        edges: readonly GraphEdge[],
-    ): string {
+    private describeFingerprintEvidence(score: number, edges: readonly GraphEdge[]): string {
         const strongest =
             this.getStrongestEdge(edges);
 
@@ -554,22 +497,13 @@ export class AntiAltRiskEngine {
             return "No qualifying fingerprint relationship.";
         }
 
-        const components =
-            strongest.matchingComponents.join(
-                ", ",
-            );
+        const components = strongest.matchingComponents.join(", ");
 
-        if (
-            score >=
-            this.options.criticalFingerprintScoreThreshold
-        ) {
+        if (score >= this.options.criticalFingerprintScoreThreshold) {
             return `Very strong fingerprint relationship with similarity ${score}; matching components: ${components}.`;
         }
 
-        if (
-            score >=
-            this.options.strongFingerprintScoreThreshold
-        ) {
+        if (score >= this.options.strongFingerprintScoreThreshold) {
             return `Strong fingerprint relationship with similarity ${score}; matching components: ${components}.`;
         }
 
@@ -585,13 +519,7 @@ export class AntiAltRiskEngine {
         strongestFingerprintScore: number,
         strongFingerprintRelationship: boolean,
     ): RiskAssessment {
-        const normalizedScore = Math.max(
-            0,
-            Math.min(
-                100,
-                Math.round(score),
-            ),
-        );
+        const normalizedScore = Math.max(0, Math.min(100, Math.round(score)));
 
         const level = this.getRiskLevel(
             normalizedScore,
@@ -601,8 +529,7 @@ export class AntiAltRiskEngine {
             accountId,
             score: normalizedScore,
             level,
-            recommendedAction:
-                this.getRecommendedAction(level),
+            recommendedAction: this.getRecommendedAction(level),
             evidence,
             relatedAccountIds,
             clusterSize,
@@ -616,48 +543,25 @@ export class AntiAltRiskEngine {
         };
     }
 
-    private getRiskLevel(
-        score: number,
-    ): RiskLevel {
-        if (
-            score >=
-            this.options.criticalThreshold
-        ) {
+    private getRiskLevel(score: number): RiskLevel {
+        if (score >= this.options.criticalThreshold) {
             return "critical";
         }
-
-        if (
-            score >=
-            this.options.highThreshold
-        ) {
+        if (score >= this.options.highThreshold) {
             return "high";
         }
-
-        if (
-            score >=
-            this.options.moderateThreshold
-        ) {
+        if (score >= this.options.moderateThreshold) {
             return "moderate";
         }
-
         return "low";
     }
 
-    private getRecommendedAction(
-        level: RiskLevel,
-    ): RiskAction {
+    private getRecommendedAction(level: RiskLevel): RiskAction {
         switch (level) {
-            case "critical":
-                return "deny_verification";
-
-            case "high":
-                return "manual_review";
-
-            case "moderate":
-                return "additional_verification";
-
-            case "low":
-                return "allow";
+            case "critical": return "deny_verification";
+            case "high": return "manual_review";
+            case "moderate": return "additional_verification";
+            case "low": return "allow";
         }
     }
 }

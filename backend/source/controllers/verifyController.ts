@@ -171,30 +171,12 @@ export const getVerified = async (req: Request, res: Response) => {
                     ? { emailHash: relatedEmailHash }
                     : {}),
 
-                emailVerified:
-                    Boolean(
-                        relatedUser.verified_email,
-                    ),
-
-                mfaEnabled:
-                    Boolean(
-                        relatedUser.mfa,
-                    ),
-
-                verified:
-                    Boolean(
-                        relatedUser.verified,
-                    ),
-
-                banned:
-                    Boolean(
-                        relatedUser.banned,
-                    ),
-
-                guildMember:
-                    Boolean(
-                        relatedUser.member
-                    )
+                emailVerified: Boolean(relatedUser.verified_email),
+                mfaEnabled: Boolean(relatedUser.mfa),
+                verified: Boolean(relatedUser.verified),
+                banned: Boolean(relatedUser.banned),
+                guildMember: Boolean(relatedUser.member),
+                avatar: relatedUser.avatar
             }
         );
     }
@@ -251,14 +233,6 @@ export const getVerified = async (req: Request, res: Response) => {
                 risk: assessment
             });
 
-        case "record":
-            return res.status(200).json({
-                success: true,
-                verified: true,
-                decision: "record",
-                risk: assessment
-            });
-
         case "additional_verification":
             return res.status(200).json({
                 success: false,
@@ -268,7 +242,7 @@ export const getVerified = async (req: Request, res: Response) => {
             });
 
         case "manual_review":
-            return res.status(200).json({
+            return res.status(403).json({
                 success: false,
                 verified: false,
                 decision: "manual_review",

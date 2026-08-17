@@ -7,7 +7,6 @@ import getBrowserADN from "../utils/adn";
 
 type VerificationDecision =
     | "allow"
-    | "record"
     | "additional_verification"
     | "manual_review"
     | "deny_verification"

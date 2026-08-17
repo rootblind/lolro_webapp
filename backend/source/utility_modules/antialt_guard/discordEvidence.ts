@@ -19,6 +19,7 @@ export function buildDiscordAccountEvidence(
         mfaEnabled: user.mfa,
         verified: user.verified,
         banned: user.banned,
-        guildMember: user.member !== null
+        guildMember: user.member !== null,
+        avatar: user.avatar
     };
 }

@@ -51,6 +51,7 @@ interface DiscordUserResponse {
     verified: boolean;
     mfa_enabled: boolean;
     locale: string;
+    avatar: string | null;
 }
 
 interface DiscordBanResponse {
@@ -139,6 +140,7 @@ export const getDiscordAuth = async (req: Request, res: Response) => {
             ban: null,
             member: null,
             isAdmin: isAdminAccount(discordUser.id),
+            avatar: discordUser.avatar
         };
 
         req.session.discordRefreshToken = token.refresh_token;

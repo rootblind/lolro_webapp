@@ -9,6 +9,7 @@ export interface DiscordAccountEvidence {
     readonly verified: boolean;
     readonly banned: boolean;
     readonly guildMember: boolean;
+    readonly avatar: string | null;
     readonly createdAt?: number;
     readonly firstSeenAt?: number;
     readonly verifiedAt?: number;

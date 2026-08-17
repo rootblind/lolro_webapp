@@ -27,3 +27,4 @@ dist-ssr
 .env
 frontend/public/
 frontend/src/assets/
+.obsidian/
