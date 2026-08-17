@@ -1,21 +1,15 @@
-export type JsonValue = 
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | JsonObject;
+import type { FingerprintHashes } from "../utility_modules/antialt_guard/hashing";
+
+export type JsonValue =
+    | string
+    | number
+    | boolean
+    | null
+    | JsonValue[]
+    | JsonObject;
 
 export interface JsonObject {
-  [key: string]: JsonValue
-}
-
-export interface FingerprintHashes {
-    systemHash: string;
-    rendererHash: string;
-    prefsHash: string;
-    minimizedHash: string;
-    fullSanitizedHash: string;
+    [key: string]: JsonValue
 }
 
 export interface CrossBrowserHash {
@@ -44,6 +38,5 @@ export interface FingerprintWeights {
 
 export interface Fingerprint {
     hashes: FingerprintHashes;
-    crossHash: string; // the hash of CrossBrowserHash
     weights: FingerprintWeights;
 }

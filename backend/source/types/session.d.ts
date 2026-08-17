@@ -1,5 +1,5 @@
 import "express-session";
-import type {  UserInfo } from "../interfaces/response_types.js";
+import type { UserInfo } from "../interfaces/response_types.js";
 import type { Fingerprint } from "../interfaces/helper_types.js";
 
 declare module "express-session" {

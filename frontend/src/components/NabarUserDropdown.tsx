@@ -4,6 +4,7 @@ import {useState} from "react";
 import {ChevronDown, ChevronUp} from "lucide-react";
 import api from "../utils/axios";
 import { useSessionContext } from "../context/SessionContext";
+import { Link } from "react-router";
 
 const NavbarUserDropdown = () => {
     const [open, setOpen] = useState(false);
@@ -34,17 +35,19 @@ const NavbarUserDropdown = () => {
                 className="btn btn-success cursor-pointer font-semibold flex items-center gap-1"
                 onClick={() => setOpen((prev) => !prev)}
             >
-                {user.username} {open ? (<ChevronUp />) : (<ChevronDown />)}
+                {user?.username ?? "Unknown user"} {open ? (<ChevronUp />) : (<ChevronDown />)}
             </div>
 
             {open && (
                 <div className="absolute right-0 mt-2 bg-base-100 border rounded p-2 shadow">
-                    <button
-                        onClick={handleLogout}
-                        className="btn btn-error btn-sm w-full text-white"
-                    >
-                        Log out
-                    </button>
+                    <Link to="/">
+                        <button
+                            onClick={handleLogout}
+                            className="btn btn-error btn-sm w-full text-white"
+                        >
+                            Log out
+                        </button>
+                    </Link>
                 </div>
             )}
         </div>

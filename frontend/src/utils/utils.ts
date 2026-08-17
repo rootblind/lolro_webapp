@@ -5,5 +5,6 @@ export function formatDate(date: Date) {
         year: "numeric"
     });
 }
-
-export const oauthURL = "https://discord.com/oauth2/authorize?client_id=1325109688467193967&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A5001%2Fapi%2Fauth%2F&scope=identify+email+guilds+connections"
+// identity, guilds, connections, email
+//export const oauthURL = "https://discord.com/oauth2/authorize?client_id=1325109688467193967&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A5001%2Fapi%2Fauth%2F&scope=identify+email+guilds+connections"
+export const oauthURL = "https://discord.com/oauth2/authorize?client_id=1325109688467193967&response_type=code&redirect_uri=http%3A%2F%2F192.168.0.116%3A5001%2Fapi%2Fauth%2F&scope=identify+connections+guilds+email";

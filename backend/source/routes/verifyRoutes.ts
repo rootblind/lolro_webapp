@@ -4,11 +4,15 @@ import {
     getVerified,
     setADN,
     setIP,
-    getVerifiedStatus
+    getVerifiedStatus,
+    getGraph
 } from "../controllers/verifyController.js";
 import requireLogin from "../middleware/requireLogin.js";
 
 const verifyRouter = express.Router();
+
+// dev only
+verifyRouter.get("/graph/", getGraph);
 
 verifyRouter.get("/", requireLogin, getVerified);
 verifyRouter.get("/status/", requireLogin, getVerifiedStatus);

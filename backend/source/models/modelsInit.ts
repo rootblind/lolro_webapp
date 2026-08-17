@@ -1,54 +1,51 @@
 import fs from "graceful-fs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
-
-
-
 // goes through ./models and calls their promise to initialize tables if they do not exist
 export default async function modelsInit() {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
-    
+
     const modelsDir = __dirname;
     const files = fs.readdirSync(modelsDir)
         .filter(file => file.endsWith(".js") && file !== "modelsInit.js"); // ignore this source
 
-    for(const file of files) {
+    for (const file of files) {
         const modelPath = path.join(modelsDir, file);
         const modelUrl = pathToFileURL(modelPath).href;
-        
+
         // removing .js extension to call the model
         const modelName = path.basename(file, ".js");
 
-        try{
+        try {
             const imported = await import(modelUrl);
             const initializer = imported.default;
 
-            if(!initializer) {
+            if (!initializer) {
                 console.warn(`${modelName} has no default export so it was skipped!`);
                 continue;
             }
 
-            try{
-                if(typeof initializer === "function") {
+            try {
+                if (typeof initializer === "function") {
                     const result = initializer();
-                    if(result instanceof Promise) {
+                    if (result instanceof Promise) {
                         await result;
                     }
-                } else if( initializer instanceof Promise) {
+                } else if (initializer instanceof Promise) {
                     await initializer;
                 } else {
                     console.warn(`${modelName} default export is not a function or a Promise so it was skipped!`);
                     continue;
                 }
-            } catch(error) {
+            } catch (error) {
                 console.error(error);
             }
-        } catch(error) {
+        } catch (error) {
             console.error(error);
             continue;
         }
 
-        
-    } 
+
+    }
 }

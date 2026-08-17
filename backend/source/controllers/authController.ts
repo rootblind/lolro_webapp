@@ -2,15 +2,64 @@ import url from "url";
 import axios from "axios";
 import { config } from "dotenv";
 import botapi from "../config/botapi.js";
-import { isUserVerified, putUser } from "../repositories/UserRepo.js";
-import { get_env_var } from "../utility_modules/utility_methods.js";
+import {
+    isUserVerified,
+    putUser,
+} from "../repositories/UserRepo.js";
+import {
+    get_env_var,
+} from "../utility_modules/utility_methods.js";
 
-import type { Request, Response } from "express";
-import type { User } from "../interfaces/database_types.js";
+import type {
+    Request,
+    Response,
+} from "express";
+
+import type {
+    User,
+} from "../interfaces/database_types.js";
+import type { BanInfo } from "../interfaces/response_types.js";
+
 config();
 
+/**
+ * At the moment it consists of env defined admin ids.
+ */
+function isAdminAccount(discordId: string): boolean {
+    const raw = process.env.ADMIN_DISCORD_IDS ?? "";
+
+    const ids = raw
+        .split(",")
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0);
+
+    return ids.includes(discordId);
+}
+
+interface DiscordOAuthTokenResponse {
+    access_token: string;
+    refresh_token: string;
+    token_type: string;
+    expires_in: number;
+}
+
+interface DiscordUserResponse {
+    id: string;
+    username: string;
+    global_name: string | null;
+    email: string | null;
+    verified: boolean;
+    mfa_enabled: boolean;
+    locale: string;
+}
+
+interface DiscordBanResponse {
+    banned: boolean;
+    ban: unknown | null;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const refreshAccessToken = async (refreshToken: string) => {
+const refreshAccessToken = async (refreshToken: string): Promise<DiscordOAuthTokenResponse> => {
     const refreshData = new url.URLSearchParams({
         client_id: get_env_var("CLIENT_ID"),
         client_secret: get_env_var("CLIENT_SECRET"),
@@ -18,155 +67,178 @@ const refreshAccessToken = async (refreshToken: string) => {
         refresh_token: refreshToken
     });
 
-    const refresh = await axios.post("https://discord.com/api/oauth2/token",
-        refreshData, {
+    const response = await axios.post<DiscordOAuthTokenResponse>(
+        "https://discord.com/api/oauth2/token",
+        refreshData,
+        {
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded"
             }
         }
     );
 
-    return refresh;
-}
+    return response.data;
+};
 
 export const getDiscordAuth = async (req: Request, res: Response) => {
     const { code } = req.query;
 
-    const HOST: string = get_env_var("HOST");
-    const FRONT_PORT: number = Number(get_env_var("FRONT_PORT"));
-    const PORT: number = Number(get_env_var("PORT"));
+    const host = get_env_var("HOST");
+    const host_front = get_env_var("HOST_FRONT");
+    const frontPort = Number(get_env_var("FRONT_PORT"));
+    const port = Number(get_env_var("PORT"));
 
-    if(!code) {
-        return res.redirect(`${HOST}:${FRONT_PORT}/`);
+    if (typeof code !== "string" || code.length === 0) {
+        return res.redirect(`${host_front}:${frontPort}/`);
     }
 
     try {
+        // exchange oauth code
         const formatData = new url.URLSearchParams({
             client_id: get_env_var("CLIENT_ID"),
             client_secret: get_env_var("CLIENT_SECRET"),
             grant_type: "authorization_code",
-            code: code.toString(),
-            redirect_uri: `${HOST}:${PORT}/api/auth/`
+            code,
+            redirect_uri: `${host}:${port}/api/auth/`,
         });
 
-        const output = await axios.post("https://discord.com/api/oauth2/token",
-            formatData, {
+        const tokenResponse = await axios.post<DiscordOAuthTokenResponse>(
+            "https://discord.com/api/oauth2/token",
+            formatData,
+            {
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded"
                 }
             }
         );
+        const token = tokenResponse.data;
 
-        if(output.data) {
-            const access = output.data.access_token;
-            
-            const userInfo = await axios.get("https://discord.com/api/users/@me", {
+        // fetch discord api data
+        const userResponse = await axios.get<DiscordUserResponse>(
+            "https://discord.com/api/users/@me",
+            {
                 headers: {
-                    "Authorization": `Bearer ${access}`
+                    Authorization: `Bearer ${token.access_token}`
                 }
-            });
+            }
+        );
 
-            req.session.user = {
-                id: userInfo.data.id,
-                username: userInfo.data.username,
-                display_name: userInfo.data.global_name,
-                mfa: userInfo.data.mfa_enabled,
-                locale: userInfo.data.locale,
-                email: userInfo.data.email,
-                verified_email: userInfo.data.verified,
-                verified: false, // verified on the webapp
-                banned: false, // banned on the server, initialize with false, but will be checked at verification
-                ban: null,
-                member: null
-            };
+        const discordUser = userResponse.data;
 
-            // fetching the member object, user.member will be null if the user is not a guild member
-            try{
-                const memberInfoResponse = await botapi.get("/member/info", {
+        // initialize identity with discord data
+        req.session.user = {
+            id: discordUser.id,
+            username: discordUser.username,
+            display_name: discordUser.global_name ?? discordUser.username,
+            mfa: discordUser.mfa_enabled,
+            locale: discordUser.locale,
+            email: discordUser.email ?? "",
+            verified_email: discordUser.verified,
+            verified: false,
+            banned: false,
+            ban: null,
+            member: null,
+            isAdmin: isAdminAccount(discordUser.id),
+        };
+
+        req.session.discordRefreshToken = token.refresh_token;
+
+        // fetch data from bot api
+        try {
+            const memberResponse = await botapi.get(
+                "/member/info",
+                {
                     params: {
-                        guild_id: process.env.GUILD,
-                        member_id: userInfo.data.id
-                    }
-                });
-
-                req.session.user.member = memberInfoResponse.data.member;
-                if(!memberInfoResponse.data.member) {
-                    // maybe the user is banned
-                    try{
-                        const banInfoResponse = await botapi.get("/ban/info", {
-                            params: {
-                                guild_id: process.env.GUILD,
-                                ban_id: req.session?.user?.id
-                            }
-                        });
-
-                        if(banInfoResponse.data.banned) {
-                            req.session.user.banned = true;
-                            req.session.user.ban = banInfoResponse.data.ban;
-                        }
-
-                    } catch(error) {
-                        console.error(error);
-                        return res.status(500).json({
-                            success: false,
-                            error: "Couldn't fetch the ban from the bot."
-                        });
+                        guild_id: get_env_var("GUILD"),
+                        member_id: discordUser.id
                     }
                 }
-            } catch(error) {
-                console.error("Failed to fetch the member object", error);
+            );
+
+            req.session.user.member = memberResponse.data.member;
+
+            // if not a member, check the banned status of the user
+            if (!memberResponse.data.member) {
+                try {
+                    const banResponse = await botapi.get<DiscordBanResponse>(
+                        "/ban/info",
+                        {
+                            params: {
+                                guild_id: get_env_var("GUILD"),
+                                ban_id: discordUser.id,
+                            }
+                        }
+                    );
+
+                    if (banResponse.data.banned) {
+                        req.session.user.banned = true;
+                        req.session.user.ban = banResponse.data.ban as BanInfo | null;
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch Discord ban information", error);
+                }
             }
-            
-            req.session.discordRefreshToken = output.data.refresh_token;
-            // refresh access token
-            // const refresh = await refreshAccessToken(output.data.refresh_token)
-
-            // check if user is registered and verified already
-            req.session.user.verified = await isUserVerified(userInfo.data.id);
-            
-            const userObj: User = {
-                id: userInfo.data.id,
-                username: userInfo.data.username,
-                display_name: userInfo.data.global_name,
-                email: userInfo.data.email,
-                mfa: userInfo.data.mfa_enabled,
-                verified_email: userInfo.data.verified,
-                verified: req.session.user.verified,
-                banned: req.session.user.banned
-            };
-
-            try { // register user or update the user entry if something changed
-                await putUser(userObj);
-            } catch(error) {
-                console.error(error);
-            }
-
+        } catch (error) {
+            console.error("Failed to fetch Discord member information", error);
         }
-        
 
-        return res.redirect(`${get_env_var("HOST")}:${get_env_var("FRONT_PORT")}/`);
-    } catch(error) {
-        console.error(error);
-        return res.status(500).json({message: "Discord OAuth failed"})
+
+        req.session.user.verified = await isUserVerified(discordUser.id); // check if the user is verified
+
+        const userObj: User = {
+            id: discordUser.id,
+            username: discordUser.username,
+            display_name: discordUser.global_name ?? discordUser.username,
+            email: discordUser.email ?? "",
+            mfa: discordUser.mfa_enabled,
+            verified_email: discordUser.verified,
+            verified: req.session.user.verified,
+            banned: req.session.user.banned
+        };
+
+        try {
+            await putUser(userObj);
+        } catch (error) {
+            console.error("Failed to persist Discord user", error);
+        }
+
+        return res.redirect(`${host}:${frontPort}/`);
+    } catch (error) {
+        console.error("Discord OAuth failed", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Discord OAuth failed"
+        });
     }
-    
 };
 
 export const getMySession = async (req: Request, res: Response) => {
-    if(req.session.user) {
-        return res.json({loggedIn: true, user: req.session.user});
+    if (req.session.user) {
+        return res.json({
+            loggedIn: true,
+            user: req.session.user
+        });
     }
-    res.json({loggedIn: false, user: null});
-}
+
+    return res.json({
+        loggedIn: false,
+        user: null
+    });
+};
 
 export const postLogOut = (req: Request, res: Response) => {
-    req.session.destroy((err) => {
-        if(err) {
-            console.error("Log out error: ", err);
-            return res.status(500).json({message: "Failed to log out"});
+    req.session.destroy((error) => {
+        if (error) {
+            console.error("Log out error:", error);
+            return res.status(500).json({
+                message: "Failed to log out"
+            });
         }
 
         res.clearCookie("connect.sid");
-        return res.status(200).json({loggedOut: true});
-    })
-}
+
+        res.status(200).json({ loggedOut: true });
+
+    });
+};

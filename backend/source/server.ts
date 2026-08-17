@@ -12,6 +12,7 @@ import rateLimiter from "./middleware/rateLimiter.js";
 import captchaRouter from "./routes/captchaRoutes.js";
 import verifyRouter from "./routes/verifyRoutes.js";
 import { fileURLToPath } from "url";
+import { rehydrateAntiAltState } from "./utility_modules/antialt_guard/rehydrate.js";
 
 const app = express();
 
@@ -23,21 +24,20 @@ const FRONT_PORT = get_env_var("FRONT_PORT");
 const __filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(__filename);
 
-const allowedOrigins = `${HOST}:${FRONT_PORT}`;
+const allowedOrigins = [`${HOST}:${FRONT_PORT}`, `http://localhost:${FRONT_PORT}`];
 
 // middleware
-if(process.env.NODE_ENV !== "production") {
+if (get_env_var("NODE_ENV") !== "production") {
     app.use(
         cors({
             origin: allowedOrigins,
             credentials: true
-            
+
         })
     );
 }
 
 app.use(express.json()); // parse json
-app.use(rateLimiter);
 app.use(session({
     secret: get_env_var("SESSION_SECRET"),
     resave: false,
@@ -49,14 +49,14 @@ app.use(session({
         maxAge: 1000 * 60 * 60 * 24 // milliseconds * seconds * minutes * hours
     }
 }));
-
+app.use(rateLimiter);
 
 // routes
 app.use("/api/auth/", authRouter);
 app.use("/api/captcha/", captchaRouter);
 app.use("/api/verify/", verifyRouter);
 
-if(process.env.NODE_ENV === "production") {
+if (process.env.NODE_ENV === "production") {
     app.use(express.static(path.join(dirname, "../../frontend/dist")));
 
     app.use((req, res) => {
@@ -68,10 +68,11 @@ if(process.env.NODE_ENV === "production") {
 // doing database tables checks and then starting the server
 (
     async () => {
-        try{
+        try {
             await modelsInit();
+            await rehydrateAntiAltState();
             console.log("All models were initialized.")
-        } catch(err) {
+        } catch (err) {
             console.error("Initialization of database models failed: ", err);
         }
     }

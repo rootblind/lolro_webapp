@@ -17,7 +17,17 @@ interface MemberInfo {
 interface UserInfo extends User {
     locale: string,
     ban: BanInfo | null,
-    member: MemberInfo | null
+    member: MemberInfo | null,
+    isAdmin: boolean,
+}
+
+export interface UserSession {
+    id: string,
+    emailVerified: boolean,
+    mfaEnabled: boolean,
+    verified: boolean,
+    banned: boolean,
+    isMember: boolean
 }
 
 export type { BanInfo, MemberInfo, UserInfo };
