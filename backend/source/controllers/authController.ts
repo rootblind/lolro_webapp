@@ -18,7 +18,7 @@ import type {
 import type {
     User,
 } from "../interfaces/database_types.js";
-import type { BanInfo } from "../interfaces/response_types.js";
+import type { BanInfo, MemberInfo } from "../interfaces/response_types.js";
 
 config();
 
@@ -52,11 +52,13 @@ interface DiscordUserResponse {
     mfa_enabled: boolean;
     locale: string;
     avatar: string | null;
+    premium_type?: number;
 }
 
 interface DiscordBanResponse {
-    banned: boolean;
-    ban: unknown | null;
+    ban: BanInfo,
+    success: boolean,
+    banned: boolean
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -127,8 +129,10 @@ export const getDiscordAuth = async (req: Request, res: Response) => {
         const discordUser = userResponse.data;
 
         // initialize identity with discord data
+        const premiumTypeNone = 0;
         req.session.user = {
             id: discordUser.id,
+            account_created_at: 0, // placeholder
             username: discordUser.username,
             display_name: discordUser.global_name ?? discordUser.username,
             mfa: discordUser.mfa_enabled,
@@ -140,14 +144,18 @@ export const getDiscordAuth = async (req: Request, res: Response) => {
             ban: null,
             member: null,
             isAdmin: isAdminAccount(discordUser.id),
-            avatar: discordUser.avatar
+            avatar: discordUser.avatar,
+            premium_active:
+                discordUser.premium_type ?
+                    discordUser.premium_type > premiumTypeNone :
+                    false
         };
 
         req.session.discordRefreshToken = token.refresh_token;
 
         // fetch data from bot api
         try {
-            const memberResponse = await botapi.get(
+            const memberResponse = await botapi.get<{ member: MemberInfo }>(
                 "/member/info",
                 {
                     params: {
@@ -157,10 +165,10 @@ export const getDiscordAuth = async (req: Request, res: Response) => {
                 }
             );
 
-            req.session.user.member = memberResponse.data.member;
-
-            // if not a member, check the banned status of the user
-            if (!memberResponse.data.member) {
+            if (memberResponse.data.member) {
+                req.session.user.member = memberResponse.data.member;
+                req.session.user.account_created_at = memberResponse.data.member.account_created_at;
+            } else {
                 try {
                     const banResponse = await botapi.get<DiscordBanResponse>(
                         "/ban/info",
@@ -174,7 +182,8 @@ export const getDiscordAuth = async (req: Request, res: Response) => {
 
                     if (banResponse.data.banned) {
                         req.session.user.banned = true;
-                        req.session.user.ban = banResponse.data.ban as BanInfo | null;
+                        req.session.user.ban = banResponse.data.ban;
+                        req.session.user.account_created_at = banResponse.data.ban.account_created_at;
                     }
                 } catch (error) {
                     console.error("Failed to fetch Discord ban information", error);
@@ -195,7 +204,8 @@ export const getDiscordAuth = async (req: Request, res: Response) => {
             mfa: discordUser.mfa_enabled,
             verified_email: discordUser.verified,
             verified: req.session.user.verified,
-            banned: req.session.user.banned
+            banned: req.session.user.banned,
+            account_created_at: req.session.user.account_created_at
         };
 
         try {

@@ -1,5 +1,7 @@
 /** 
- * Discord-side evidence used by the anti-alt risk engine. 
+ * Discord-side evidence used by the anti-alt risk engine.
+ * 
+ * Timestamps such as createdAt and joined_guild_at are in seconds 
 */
 export interface DiscordAccountEvidence {
     readonly id: string;
@@ -8,9 +10,8 @@ export interface DiscordAccountEvidence {
     readonly mfaEnabled: boolean;
     readonly verified: boolean;
     readonly banned: boolean;
-    readonly guildMember: boolean;
-    readonly avatar: string | null;
+    readonly avatar?: string | null;
+    readonly hasPremium?: boolean;
     readonly createdAt?: number;
-    readonly firstSeenAt?: number;
-    readonly verifiedAt?: number;
+    readonly joined_guild_at?: number | null;
 }

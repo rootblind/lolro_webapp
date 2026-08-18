@@ -26,18 +26,20 @@ export type RiskEvidenceType =
     | "related_banned_account"
     | "related_verified_account"
     | "shared_email"
-    | "mfa_difference"
     | "guild_membership"
     | "account_age"
     | "historical_relationship"
     | "shared_ip"
-    | "no_avatar";
+    | "no_avatar"
+    | "has_premium"
+    | "young_account"
+    | "joined_too_soon"
+    | "joined_same_day"
 
 export interface RiskEvidence {
     readonly type: RiskEvidenceType;
     readonly points: number; // negative ++; positive --
     readonly description: string;
-    // Optional Discord account IDs associated with this evidence.
     readonly relatedAccountIds: readonly string[];
 }
 
@@ -74,22 +76,31 @@ export interface RiskOptions {
     readonly relatedVerifiedAccountPoints?: number;
     readonly historicalRelationshipPoints?: number;
     readonly noAvatarPoints?: number;
+    // discord account age related
+    // Points are added to accounts with an age below the threshold (in days)
+    // Points are added when the difference between the account age and joining date is below
+    // the threshold (in days)
+    readonly youngAccountPoints?: number;
+    readonly joinedAgeDifferencePoints?: number;
+    readonly joinedSameDayMultiplier?: number;
 
     // ip side
     readonly sharedIpPoints?: number;
     readonly maximumIpPoints?: number;
 
-    // Risk reduction
-    readonly mfaEnabledReduction?: number;
+    // point deduction evidence //
+    readonly accountHasPremiumPoints?: number;
+    ///
 
     // thresholds
     readonly moderateThreshold?: number;
     readonly highThreshold?: number;
     readonly criticalThreshold?: number;
+
+    // discord age threshold
+    readonly accountAgeThreshold?: number;
+    readonly joinedAgeDifferenceThreshold?: number;
 }
-// TODO: TO ADD:
-// - account age threshold (points added if the account age is under the threshold)
-// - add premium_type as another deduction factor
 const DEFAULT_OPTIONS: Required<RiskOptions> = {
     fingerprintScoreThreshold: 75,
     strongFingerprintScoreThreshold: 85,
@@ -101,15 +112,25 @@ const DEFAULT_OPTIONS: Required<RiskOptions> = {
     relatedVerifiedAccountPoints: 5,
     historicalRelationshipPoints: 10,
     noAvatarPoints: 4,
+    // discord age related
+    youngAccountPoints: 30,
+    joinedAgeDifferencePoints: 15,
+    joinedSameDayMultiplier: 2,
 
     sharedIpPoints: 8,
     maximumIpPoints: 15,
 
-    mfaEnabledReduction: 2,
+    // point deduction evidence //
+    accountHasPremiumPoints: 4,
+    ///
 
     moderateThreshold: 30,
     highThreshold: 60,
     criticalThreshold: 85,
+
+    // discord age threshold
+    accountAgeThreshold: 2,
+    joinedAgeDifferenceThreshold: 3,
 };
 
 /**
@@ -155,23 +176,6 @@ export class AntiAltRiskEngine {
             (id) => id !== account.id,
         );
 
-        if (cluster === undefined && ipRelated.length === 0) {
-            const baseScore = this.applyMfaReduction(
-                0,
-                account,
-                evidence,
-            );
-
-            return this.buildAssessment(
-                account.id,
-                baseScore,
-                evidence,
-                [],
-                1,
-                0,
-                false,
-            );
-        }
 
         const relatedEdges = cluster !== undefined
             ? this.getAccountEdges(
@@ -313,14 +317,43 @@ export class AntiAltRiskEngine {
             });
         }
 
+        if (account.createdAt) {
+            const DAY_IN_SECONDS = 24 * 60 * 60;
+            const now = Math.floor(Date.now() / 1000); // current timestamp in seconds
+            const accountAgeNormalized = Math.max(0, now - account.createdAt);
+            if (accountAgeNormalized <= this.options.accountAgeThreshold * DAY_IN_SECONDS) {
+                // if the account is too young
+                evidence.push({
+                    type: "young_account",
+                    points: this.options.youngAccountPoints,
+                    description: "Account created recently; age doesn't meet the threshold.",
+                    relatedAccountIds: []
+                });
+
+                if (account.joined_guild_at) {
+                    const joinCreateDifference = Math.max(0, account.joined_guild_at - account.createdAt);
+                    if (joinCreateDifference <= this.options.joinedAgeDifferenceThreshold * DAY_IN_SECONDS) {
+                        // set the multiplier: if the difference is <= one day, then the multiplier applies
+                        // otherwise, multiplier is 1 (one)
+                        const multiplier =
+                            joinCreateDifference <= DAY_IN_SECONDS ?
+                                this.options.joinedSameDayMultiplier :
+                                1;
+                        evidence.push({
+                            type: multiplier === 1 ? "joined_too_soon" : "joined_same_day",
+                            points: this.options.joinedAgeDifferencePoints * this.options.joinedSameDayMultiplier,
+                            description: "This account joined the guild too soon after creation.",
+                            relatedAccountIds: []
+                        });
+                    }
+                }
+            }
+        }
+
         // iterate through RiskEvidence to sum up the score
         let score = this.sumPositiveEvidence(evidence);
-
-        score = this.applyMfaReduction(
-            score,
-            account,
-            evidence,
-        );
+        // check deduction conditions that may reduce the score
+        score = this.sumScoreDeduction(score, account, evidence);
 
         score = Math.min(
             score,
@@ -357,17 +390,17 @@ export class AntiAltRiskEngine {
         // Use the strongest relationship as the primary signal.
         // Additional independent strong relationships contribute diminishing amounts rather than linearly increasing risk.
         const sorted = [...relevant].sort(
-            (a, b) => b.score - a.score,
+            (a, b) => b.score - a.score
         );
 
         const strongest = sorted[0]?.score ?? 0;
 
         let points = this.scoreFingerprint(
-            strongest,
+            strongest
         );
 
         const persistent = relevant.filter(
-            (edge) => edge.observationCount >= 2,
+            (edge) => edge.observationCount >= 2
         ).length;
 
         if (persistent >= 2) {
@@ -402,26 +435,6 @@ export class AntiAltRiskEngine {
             return 30;
         }
         return 0;
-    }
-
-    private applyMfaReduction(score: number, account: DiscordAccountEvidence, evidence: RiskEvidence[]): number {
-        if (!account.mfaEnabled) {
-            return score;
-        }
-
-        // can not be a negative
-        const reduced = Math.max(0, score - this.options.mfaEnabledReduction);
-
-        if (reduced !== score) {
-            evidence.push({
-                type: "mfa_difference",
-                points: -this.options.mfaEnabledReduction,
-                description: "MFA is enabled on this account. Risk points deducted.",
-                relatedAccountIds: []
-            });
-        }
-
-        return reduced;
     }
 
     private getAccountEdges(accountId: string, edges: readonly GraphEdge[]): readonly GraphEdge[] {
@@ -487,6 +500,26 @@ export class AntiAltRiskEngine {
 
     private sumPositiveEvidence(evidence: readonly RiskEvidence[]): number {
         return evidence.reduce((sum, item) => sum + item.points, 0);
+    }
+
+    private sumScoreDeduction(
+        score: number, account:
+            DiscordAccountEvidence,
+        evidence: RiskEvidence[]
+    ): number {
+        let reduced = score;
+        // premium
+        if (account.hasPremium) {
+            reduced = Math.max(0, score - this.options.accountHasPremiumPoints);
+            evidence.push({
+                type: "has_premium",
+                points: -this.options.accountHasPremiumPoints,
+                description: "This account has Nitro active, risk potential decreased.",
+                relatedAccountIds: []
+            });
+        }
+
+        return reduced;
     }
 
     private describeFingerprintEvidence(score: number, edges: readonly GraphEdge[]): string {

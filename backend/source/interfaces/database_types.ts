@@ -17,6 +17,7 @@ interface User {
     verified_email: boolean,
     verified: boolean,
     banned: boolean,
+    account_created_at: number,
     registered_at?: string
 }
 

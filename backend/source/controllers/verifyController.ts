@@ -175,8 +175,7 @@ export const getVerified = async (req: Request, res: Response) => {
                 mfaEnabled: Boolean(relatedUser.mfa),
                 verified: Boolean(relatedUser.verified),
                 banned: Boolean(relatedUser.banned),
-                guildMember: Boolean(relatedUser.member),
-                avatar: relatedUser.avatar
+                createdAt: relatedUser.account_created_at
             }
         );
     }

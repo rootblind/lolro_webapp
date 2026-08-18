@@ -10,7 +10,7 @@ export function buildDiscordAccountEvidence(
     user: UserInfo,
 ): DiscordAccountEvidence {
     const emailHash = hashEmail(user.email);
-
+    const joinedGuildAt = user.member?.joined_guild_at;
     return {
         id: user.id,
         ...(emailHash !== undefined ? { emailHash } : {}),
@@ -19,7 +19,9 @@ export function buildDiscordAccountEvidence(
         mfaEnabled: user.mfa,
         verified: user.verified,
         banned: user.banned,
-        guildMember: user.member !== null,
-        avatar: user.avatar
+        avatar: user.avatar,
+        hasPremium: user.premium_active,
+        createdAt: user.account_created_at,
+        joined_guild_at: joinedGuildAt ? Number(joinedGuildAt) : null
     };
 }

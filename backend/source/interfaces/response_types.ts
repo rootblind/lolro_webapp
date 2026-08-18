@@ -2,16 +2,17 @@ import type { User } from "./database_types";
 
 interface BanInfo {
     banned: boolean,
-    moderator: string | bigint | null,
-    expires: string | bigint | number,
+    moderator: string | null,
+    expires: string | number,
     reason: string,
-    timestamp: string | bigint | null
+    timestamp: string | null,
+    account_created_at: number
 }
 
 interface MemberInfo {
-    avatar: string,
-    joined_guild_at: number | null,
-    premium: boolean
+    avatar: string | null,
+    joined_guild_at: string,
+    account_created_at: number
 }
 
 interface UserInfo extends User {
@@ -19,7 +20,8 @@ interface UserInfo extends User {
     ban: BanInfo | null,
     member: MemberInfo | null,
     isAdmin: boolean,
-    avatar: string | null
+    avatar: string | null,
+    premium_active: boolean
 }
 
 export interface UserSession {

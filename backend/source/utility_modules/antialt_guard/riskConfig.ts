@@ -60,17 +60,25 @@ export function getRiskOptionsFromEnv(): RiskOptions {
         strongFingerprintScoreThreshold: readNumber("ANTIALT_STRONG_FINGERPRINT_SCORE_THRESHOLD"),
         criticalFingerprintScoreThreshold: readNumber("ANTIALT_CRITICAL_FINGERPRINT_SCORE_THRESHOLD"),
         maximumFingerprintPoints: readNumber("ANTIALT_MAX_FINGERPRINT_POINTS"),
+
         relatedBannedAccountPoints: readNumber("ANTIALT_RELATED_BANNED_ACCOUNT_POINTS"),
         sharedEmailPoints: readNumber("ANTIALT_SHARED_EMAIL_POINTS"),
         relatedVerifiedAccountPoints: readNumber("ANTIALT_RELATED_VERIFIED_ACCOUNT_POINTS"),
         noAvatarPoints: readNumber("ANTIALT_NO_AVATAR_POINTS"),
+        accountHasPremiumPoints: readNumber("ANTIALT_HAS_PREMIUM"),
+        youngAccountPoints: readNumber("ANTIALT_YOUNG_ACCOUNT_POINTS"),
+        joinedAgeDifferencePoints: readNumber("ANTIALT_JOINED_AGE_DIFFERENCE_POINTS"),
+        joinedSameDayMultiplier: readNumber("ANTIALT_JOINED_SAME_DAY_MULTIPLIER"),
+
         historicalRelationshipPoints: readNumber("ANTIALT_HISTORICAL_RELATIONSHIP_POINTS"),
         sharedIpPoints: readNumber("ANTIALT_SHARED_IP_POINTS"),
         maximumIpPoints: readNumber("ANTIALT_MAX_IP_POINTS"),
-        mfaEnabledReduction: readNumber("ANTIALT_MFA_ENABLED_REDUCTION"),
+
         moderateThreshold: readNumber("ANTIALT_MODERATE_THRESHOLD"),
         highThreshold: readNumber("ANTIALT_HIGH_THRESHOLD"),
         criticalThreshold: readNumber("ANTIALT_CRITICAL_THRESHOLD"),
+        accountAgeThreshold: readNumber("ANTIALT_ACCOUNT_AGE_THRESHOLD"),
+        joinedAgeDifferenceThreshold: readNumber("ANTIALT_JOINED_AGE_DIFFERENCE_THRESHOLD")
     });
 }
 
