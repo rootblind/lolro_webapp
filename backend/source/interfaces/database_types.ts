@@ -1,5 +1,5 @@
 import type { FingerprintHashes } from "../utility_modules/antialt_guard/hashing.js"
-import type { JsonObject } from "./helper_types.js";
+import type { FingerprintAvailability } from "./helper_types.js";
 import type { SimilarityConfidence } from "../utility_modules/antialt_guard/similarity.js";
 import type {
     RiskAction,
@@ -27,7 +27,7 @@ interface User {
 export interface FingerprintObservationRecord {
     readonly id: number;
     readonly account_id: string;
-    readonly normalized: JsonObject;
+    readonly normalized: FingerprintAvailability;
     readonly hashes: FingerprintHashes;
     readonly observed_at: Date;
 }

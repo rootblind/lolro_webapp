@@ -1,4 +1,4 @@
-import type { JsonObject, JsonValue } from "../../interfaces/helper_types.js";
+import type { FingerprintAvailability, JsonObject, JsonValue } from "../../interfaces/helper_types.js";
 
 const SCREEN_BUCKET = 16; // diminishing variation by encapsulating multiple screen sizes in buckets
 
@@ -610,4 +610,61 @@ export function normalizeComponents(
     }
 
     return normalized;
+}
+
+export function hasAvailableValue(value: JsonValue | undefined): boolean {
+    if (value === undefined || value === null) {
+        return false;
+    }
+
+    if (
+        typeof value === "object" &&
+        !Array.isArray(value) &&
+        "value" in value
+    ) {
+        return hasAvailableValue(value.value);
+    }
+
+    if (typeof value === "string") {
+        return value.length > 0;
+    }
+
+    if (Array.isArray(value)) {
+        return value.length > 0;
+    }
+
+    if (typeof value === "object") {
+        return Object.keys(value).length > 0;
+    }
+
+    // numbers and booleans, including 0 and false, are valid values.
+    return true;
+}
+
+export function buildAvailability(
+    normalized: JsonObject,
+): FingerprintAvailability {
+    return {
+        canvas: hasAvailableValue(normalized.canvas),
+        webGlBasics: hasAvailableValue(normalized.webGlBasics),
+        fonts: hasAvailableValue(normalized.fonts),
+        audio: hasAvailableValue(normalized.audio),
+        math: hasAvailableValue(normalized.math),
+        webGlExtensions: hasAvailableValue(normalized.webGlExtensions),
+        hardwareConcurrency: hasAvailableValue(
+            normalized.hardwareConcurrency,
+        ),
+        platform: hasAvailableValue(normalized.platform),
+        architecture: hasAvailableValue(normalized.architecture),
+        deviceMemory: hasAvailableValue(normalized.deviceMemory),
+        timezone: hasAvailableValue(normalized.timezone),
+        timezoneOffset: hasAvailableValue(
+            normalized.timezoneOffset,
+        ),
+        languages: hasAvailableValue(normalized.languages),
+        colorDepth: hasAvailableValue(normalized.colorDepth),
+        screenResolution: hasAvailableValue(
+            normalized.screenResolution,
+        ),
+    };
 }

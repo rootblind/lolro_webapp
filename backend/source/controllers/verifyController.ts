@@ -1,6 +1,5 @@
 import { config } from "dotenv";
 import type { Request, Response } from "express";
-import { hasValueProp } from "../utility_modules/utility_methods.js";
 import type { Fingerprint } from "../interfaces/helper_types.js";
 import {
     antiAltRiskEngine,
@@ -12,7 +11,7 @@ import type {
     FingerprintObservation,
 } from "../utility_modules/antialt_guard/graph.js";
 import { buildHashes } from "../utility_modules/antialt_guard/hashing.js";
-import { normalizeComponents } from "../utility_modules/antialt_guard/normalize.js";
+import { buildAvailability, normalizeComponents } from "../utility_modules/antialt_guard/normalize.js";
 import type { DiscordAccountEvidence } from "../interfaces/discord_types.js";
 import { getUserById } from "../repositories/UserRepo.js";
 import { buildDiscordAccountEvidence } from "../utility_modules/antialt_guard/discordEvidence.js";
@@ -299,49 +298,15 @@ export const setADN = async (req: Request, res: Response) => {
     const normalized =
         normalizeComponents(rawComponents);
 
+    const availability = buildAvailability(normalized);
+
     const hashes = buildHashes(
         normalized,
         userAgent
     );
 
     const weights = {
-        platform: hasValueProp(normalized.platform!)
-            ? normalized.platform.value ?? null
-            : normalized.platform ?? null,
-
-        timezone: hasValueProp(normalized.timezone!)
-            ? normalized.timezone.value ?? null
-            : normalized.timezone ?? null,
-
-        browserVendor: hasValueProp(normalized.vendor!)
-            ? normalized.vendor.value ?? null
-            : normalized.vendor ?? null,
-
-        fonts: hasValueProp(normalized.fonts!)
-            ? normalized.fonts.value ?? null
-            : normalized.fonts ?? null,
-
-        screenResolution:
-            hasValueProp(
-                normalized.screenResolution!,
-            )
-                ? normalized.screenResolution.value ??
-                null
-                : normalized.screenResolution ?? null,
-
-        hardwareConcurrency:
-            hasValueProp(
-                normalized.hardwareConcurrency!,
-            )
-                ? normalized.hardwareConcurrency.value ??
-                null
-                : normalized.hardwareConcurrency ??
-                null,
-
-        languages: hasValueProp(normalized.languages!)
-            ? normalized.languages.value ?? null
-            : normalized.languages ?? null,
-
+        availability,
         userAgent
     };
 
@@ -352,7 +317,7 @@ export const setADN = async (req: Request, res: Response) => {
 
     const observation: FingerprintObservation = {
         accountId: String(req.session.user.id),
-        normalized,
+        normalized: availability,
         hashes,
         observedAt: Date.now()
     };

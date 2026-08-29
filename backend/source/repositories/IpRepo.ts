@@ -7,7 +7,7 @@ import type { IpObservationRecord } from "../interfaces/database_types.js";
 export const recordObservation = async (
     accountId: string,
     ip: string,
-    observedAt: number = Date.now(),
+    observedAt: number = Date.now()
 ): Promise<void> => {
     await database.query(
         `
@@ -31,7 +31,7 @@ export const loadAllObservations = async (): Promise<
 };
 
 export const getIpsForAccount = async (
-    accountId: string,
+    accountId: string
 ): Promise<readonly IpObservationRecord[]> => {
     const result = await database.query<IpObservationRecord>(
         `
@@ -45,3 +45,15 @@ export const getIpsForAccount = async (
 
     return result.rows;
 };
+
+/**
+ * Deletes all rows whose first_seen_at column is older than the number of days given.
+ */
+export const clearExpiredIps = async (days: number): Promise<void> => {
+    await database.query(
+        `
+        DELETE FROM ip_observation WHERE first_seen_at <= CURRENT_TIMESTAMP - ($1 * INTERVAL '1 day')
+        `,
+        [days]
+    );
+}

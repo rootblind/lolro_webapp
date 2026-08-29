@@ -26,13 +26,7 @@ export interface CrossBrowserHash {
 }
 
 export interface FingerprintWeights {
-    platform: JsonValue | null;
-    timezone: JsonValue | null;
-    browserVendor: JsonValue | null;
-    fonts: JsonValue | null;
-    screenResolution: JsonValue | null;
-    hardwareConcurrency: JsonValue | null;
-    languages: JsonValue | null;
+    availability: FingerprintAvailability;
     userAgent: string | null;
 }
 
@@ -40,3 +34,45 @@ export interface Fingerprint {
     hashes: FingerprintHashes;
     weights: FingerprintWeights;
 }
+
+export interface FingerprintAvailability {
+    canvas: boolean;
+    webGlBasics: boolean;
+    fonts: boolean;
+    audio: boolean;
+    math: boolean;
+    webGlExtensions: boolean;
+    hardwareConcurrency: boolean;
+    platform: boolean;
+    architecture: boolean;
+    deviceMemory: boolean;
+    timezone: boolean;
+    timezoneOffset: boolean;
+    languages: boolean;
+    colorDepth: boolean;
+    screenResolution: boolean;
+}
+
+type CronChar = "*" | "/" | "-" | "," | `${number}`;
+type CronField = `${CronChar}${string}` | CronChar;
+
+type CronString =
+    `${CronField} ${CronField} ${CronField} ${CronField} ${CronField}`;
+
+/**
+ * @param name The name of the task
+ * @param schedule CronString for scheduling the cron task
+ * @param job Async function to execute as the cron's task job
+ * @param runCondition Async function to start the cron task if true or to pause it if it returns false
+ * 
+ * Interface for objects to be used in the cron_task_loader
+ */
+export interface CronTaskBuilder {
+    name: string,
+    schedule: CronString;
+    job: () => Promise<void>;
+    runCondition: () => Promise<boolean>
+
+}
+
+export type FingerprintComponentType = keyof FingerprintAvailability;

@@ -183,3 +183,56 @@ export const getEdgesForAccount = async (
 
     return result.rows;
 };
+
+
+/**
+ * Deletes all rows with expired ttl
+ */
+export const clearExpiredFingerprintData = async (days: number): Promise<void> => {
+    if (days <= 0 || !Number.isInteger(days)) {
+        throw new Error(`${days} was given as input, but a positive integer was expected.`)
+    }
+    try {
+        await database.query("BEGIN");
+        await database.query(
+            `
+        DELETE FROM fingerprint_observation
+        WHERE observed_at <= CURRENT_TIMESTAMP - ($1 * INTERVAL '1 day');
+
+        DELETE FROM fingerprint_edge
+        WHERE first_seen_at <= CURRENT_TIMESTAMP - ($1 * INTERVAL '1 day');
+
+        DELETE FROM risk_assessment
+        WHERE created_at <= CURRENT_TIMESTAMP - ($1 * INTERVAL '1 day');
+
+        DELETE FROM fingerprint_account fa
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM fingerprint_observation fo
+            WHERE fo.account_id = fa.account_id
+        )
+        AND NOT EXISTS (
+            SELECT 1
+            FROM fingerprint_edge fe
+            WHERE fe.source_account_id = fa.account_id
+            OR fe.target_account_id = fa.account_id
+        )
+        AND NOT EXISTS (
+            SELECT 1
+            FROM ip_observation io
+            WHERE io.account_id = fa.account_id
+        )
+        AND NOT EXISTS (
+            SELECT 1
+            FROM risk_assessment ra
+            WHERE ra.account_id = fa.account_id
+        );
+        `,
+            [days]
+        );
+        await database.query("COMMIT");
+    } catch (error) {
+        await database.query("ROLLBACK");
+        throw error;
+    }
+}

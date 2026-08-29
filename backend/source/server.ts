@@ -13,6 +13,7 @@ import captchaRouter from "./routes/captchaRoutes.js";
 import verifyRouter from "./routes/verifyRoutes.js";
 import { fileURLToPath } from "url";
 import { rehydrateAntiAltState } from "./utility_modules/antialt_guard/rehydrate.js";
+import { init_cron_jobs, load_cron_source } from "./utility_modules/cronHandler.js";
 
 const app = express();
 
@@ -70,10 +71,16 @@ if (process.env.NODE_ENV === "production") {
     async () => {
         try {
             await modelsInit();
-            await rehydrateAntiAltState();
             console.log("All models were initialized.")
+            await rehydrateAntiAltState();
+
+            const cron_tasks_source = "./utility_modules/cron_tasks.ts";
+            const cronTasks = await load_cron_source(cron_tasks_source);
+            if (cronTasks) await init_cron_jobs(cronTasks);
+
         } catch (err) {
-            console.error("Initialization of database models failed: ", err);
+            console.error("One or more initialization checks failed: ", err);
+            setTimeout(() => process.exit(1), 5_000);
         }
     }
 )().then(() => {

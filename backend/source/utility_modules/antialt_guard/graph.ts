@@ -1,5 +1,5 @@
 import type {
-    JsonObject,
+    FingerprintAvailability
 } from "../../interfaces/helper_types.js";
 
 import type {
@@ -14,7 +14,7 @@ import {
 
 export interface FingerprintObservation {
     readonly accountId: string;
-    readonly normalized: JsonObject;
+    readonly normalized: FingerprintAvailability;
     readonly hashes: FingerprintHashes;
     readonly observedAt: number;
 }
@@ -86,7 +86,7 @@ const DEFAULT_OPTIONS: Required<GraphOptions> = {
     minimumComparableComponents: 4,
     maxObservationsPerAccount: 10,
     maxCandidatesPerObservation: 500,
-    observationTtlMs: 1000 * 60 * 60 * 24 * 365,
+    observationTtlMs: 1000 * 60 * 60 * 24 * 365 * 3, // 3 years
     debugLogging: false,
 };
 
@@ -212,21 +212,16 @@ export class FingerprintGraph {
     public addObservation(
         observation: FingerprintObservation,
     ): readonly GraphEdge[] {
+
         this.validateObservation(observation);
-
         const now = Date.now();
-
         this.pruneExpiredObservations(now);
-
         this.upsertNode(observation, now);
-
         const previousObservations =
             this.observations.get(observation.accountId) ?? [];
 
         const candidates = this.getCandidates(observation);
-
         const newEdges: GraphEdge[] = [];
-
         for (const candidate of candidates) {
             // never compare an account with itself.
             if (
@@ -498,9 +493,7 @@ export class FingerprintGraph {
     /**
      * Remove expired observations and their corresponding accounts/edges.
      */
-    public pruneExpiredObservations(
-        now = Date.now(),
-    ): void {
+    public pruneExpiredObservations(now = Date.now()): void {
         const ttl = this.options.observationTtlMs;
 
         if (ttl <= 0) {
@@ -509,13 +502,10 @@ export class FingerprintGraph {
 
         const cutoff = now - ttl;
 
-        for (
-            const [accountId, storedObservations]
-            of this.observations
-        ) {
+        for (const [accountId, storedObservations] of this.observations) {
             const retained = storedObservations.filter(
                 (stored) =>
-                    stored.storedAt >= cutoff,
+                    stored.observation.observedAt >= cutoff,
             );
 
             if (retained.length === 0) {
@@ -525,7 +515,7 @@ export class FingerprintGraph {
 
             this.observations.set(
                 accountId,
-                retained,
+                retained
             );
 
             const node = this.nodes.get(accountId);

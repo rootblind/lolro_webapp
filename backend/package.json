@@ -26,6 +26,7 @@
     "express": "^5.1.0",
     "express-session": "^1.18.2",
     "graceful-fs": "^4.2.11",
+    "node-cron": "^4.6.0",
     "nodemon": "^3.1.10",
     "pg": "^8.16.3",
     "svg-captcha": "^1.4.0"

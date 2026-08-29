@@ -1,6 +1,6 @@
 import type {
-    JsonObject,
-    JsonValue,
+    FingerprintAvailability,
+    FingerprintComponentType
 } from "../../interfaces/helper_types.js";
 
 import type { FingerprintHashes } from "./hashing.js";
@@ -51,7 +51,7 @@ export interface SimilarityResult {
 interface ComponentDefinition {
     readonly name: string;
     readonly hashKey: keyof FingerprintHashes;
-    readonly normalizedKey: string;
+    readonly normalizedKey: FingerprintComponentType;
     readonly weight: number;
     readonly strong: boolean;
 }
@@ -196,86 +196,13 @@ const CROSS_BROWSER_KEYS = [
     "timezoneOffset",
 ] as const;
 
-/**
- * Values that should not count as usable fingerprint evidence such as null
- */
-function hasUsableValue(value: JsonValue | undefined): boolean {
-    return value !== undefined && value !== null;
-}
-
-/**
- * Determines whether a normalized component actually exists and contains usable value
- */
-function getNormalizedComponent(
-    normalized: JsonObject,
-    key: string,
-): JsonValue | undefined {
-    const component = normalized[key];
-
-    if (!hasUsableValue(component)) {
-        return undefined;
-    }
-
-    if (
-        typeof component === "object" &&
-        component !== null &&
-        !Array.isArray(component)
-    ) {
-        const object = component as JsonObject;
-
-        if ("value" in object) {
-            return object.value;
-        }
-    }
-
-    return component;
-}
-
-/**
- * Determine whether a component contains meaningful data.
- *
- * Empty arrays/objects are treated as unavailable. This prevents a collector
- * that returned [] or {} from becoming a false positive match.
- */
-function isMeaningfulValue(value: JsonValue | undefined): boolean {
-    if (!hasUsableValue(value)) {
-        return false;
-    }
-
-    if (Array.isArray(value)) {
-        return value.length > 0;
-    }
-
-    if (typeof value === "object" && value !== null) {
-        return Object.keys(value).length > 0;
-    }
-
-    if (typeof value === "string") {
-        return value.length > 0;
-    }
-
-    return true;
-}
-
 function getAvailability(
-    normalized: JsonObject,
+    availability: FingerprintAvailability,
     hashes: FingerprintHashes,
     definition: ComponentDefinition,
 ): ComponentAvailability {
-    const normalizedValue = getNormalizedComponent(
-        normalized,
-        definition.normalizedKey,
-    );
-
-    if (!isMeaningfulValue(normalizedValue)) {
-        return {
-            available: false,
-            hash: hashes[definition.hashKey],
-        };
-    }
-
     return {
-        available: true,
+        available: availability[definition.normalizedKey],
         hash: hashes[definition.hashKey],
     };
 }
@@ -321,14 +248,14 @@ function getConfidence(
  * cross-browser hash represents actual available evidence for both clients.
  */
 function hasCrossBrowserEvidence(
-    normalized: JsonObject,
+    availability: FingerprintAvailability,
 ): boolean {
     let available = 0;
 
     for (const key of CROSS_BROWSER_KEYS) {
-        const value = getNormalizedComponent(normalized, key);
+        const isAvailbale = availability[key];
 
-        if (isMeaningfulValue(value)) {
+        if (isAvailbale) {
             available += 1;
         }
     }
@@ -346,9 +273,9 @@ function hasCrossBrowserEvidence(
  *
  */
 export function compareFingerprints(
-    normalizedA: JsonObject,
+    normalizedA: FingerprintAvailability,
     hashesA: FingerprintHashes,
-    normalizedB: JsonObject,
+    normalizedB: FingerprintAvailability,
     hashesB: FingerprintHashes,
     debugLogging = false,
 ): SimilarityResult {

@@ -19,7 +19,7 @@ export interface IpGraphOptions {
 
 const DEFAULT_OPTIONS: Required<IpGraphOptions> = {
     maxAccountsPerIp: 20,
-    ipTtlMs: 1000 * 60 * 60 * 24 * 30, // 30 days
+    ipTtlMs: 1000 * 60 * 60 * 24 * 90, // 90 days
     debugLogging: false,
 };
 
@@ -77,7 +77,7 @@ export class IpCorrelationGraph {
 
     /**
      * Other account IDs observed on the same IP(s) as accountId, within
-     * the TTL window, EXCLUDING any IP that's too noisy to be informative.
+     * the TTL window, EXCLUDING any IP that's expired or too noisy
      */
     public getRelatedAccounts(
         accountId: string,
@@ -91,7 +91,6 @@ export class IpCorrelationGraph {
 
         const related = new Set<string>();
         const cutoff = now - this.options.ipTtlMs;
-
         for (const ip of ips) {
             const accountsForIp = this.ipToAccounts.get(ip);
 
@@ -99,9 +98,13 @@ export class IpCorrelationGraph {
                 continue;
             }
 
-            const fresh = [...accountsForIp.entries()].filter(
-                ([, observedAt]) => observedAt >= cutoff,
-            );
+            for (const [accountId, observedAt] of accountsForIp) {
+                // clear expired IPs
+                if (observedAt < cutoff) {
+                    accountsForIp.delete(accountId);
+                }
+            }
+            const fresh = [...accountsForIp.entries()];
 
             if (fresh.length > this.options.maxAccountsPerIp) {
                 if (this.options.debugLogging) {
