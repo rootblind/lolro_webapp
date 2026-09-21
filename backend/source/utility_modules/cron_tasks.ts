@@ -6,10 +6,10 @@
  * ATTENTION: Do not cluster too many cron tasks on the same scheduler, or some tasks might execute late
  */
 
-import type { CronTaskBuilder } from "../interfaces/helper_types";
-import { clearExpiredFingerprintData } from "../repositories/FingerprintRepo";
-import { clearExpiredIps } from "../repositories/IpRepo";
-import { fingerprintGraph } from "./antialt_guard/antiAltEngine";
+import type { CronTaskBuilder } from "../interfaces/helper_types.js";
+import { clearExpiredFingerprintData } from "../repositories/FingerprintRepo.js";
+import { clearExpiredIps } from "../repositories/IpRepo.js";
+import { fingerprintGraph } from "./antialt_guard/antiAltEngine.js";
 
 export const removeExpiredIPs: CronTaskBuilder = {
     name: "Remove expired IPs",

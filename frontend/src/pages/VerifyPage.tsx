@@ -16,6 +16,7 @@ interface VerificationResponse {
     success: boolean;
     verified: boolean;
     decision?: VerificationDecision;
+    awaits_manual_verification?: boolean;
     risk?: unknown;
     error?: string;
 }
@@ -23,7 +24,6 @@ interface VerificationResponse {
 const VerifyPage = () => {
     const { setVerified } = useSessionContext();
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [decision, setDecision] = useState<VerificationDecision | null>(null);
 
     const hasRun = useRef(false); // avoid double invoking
@@ -32,13 +32,11 @@ const VerifyPage = () => {
         if (hasRun.current) {
             return;
         }
-
         hasRun.current = true;
         let cancelled = false;
         const verify = async () => {
             try {
                 setLoading(true);
-                setError(null);
                 const adn = await getBrowserADN(); // collect fingerprint from fingerprintjs
 
                 // send the fingerprint and agent to the backend
@@ -70,15 +68,10 @@ const VerifyPage = () => {
                         },
                     );
 
+                setVerified(response.data.verified);
+                setDecision(response.data.decision ?? null);
                 if (cancelled) {
                     return;
-                }
-
-                setVerified(response.data.verified);
-                setDecision(response.data.decision ?? null,);
-
-                if (!response.data.success) {
-                    setError(response.data.error ?? "Verification was not granted.");
                 }
             } catch (error) {
                 if (cancelled) {
@@ -93,10 +86,8 @@ const VerifyPage = () => {
                     const data = error.response.data;
                     setVerified(Boolean(data.verified));
                     setDecision(data.decision ?? null);
-                    setError(data.error ?? "Verification was not granted.");
                     return;
                 }
-                setError("Verification could not be completed.");
             } finally {
                     setLoading(false);
             }
@@ -112,42 +103,34 @@ const VerifyPage = () => {
     if (loading) {
         return <LoadingComponent />;
     }
-
-    if (error) {
-        return (
-            <div>
-                <p>{error}</p>
-
-                {decision === "additional_verification" && (
-                    <p>
-                        Additional verification is required.
-                    </p>
-                )}
-
-                {decision === "manual_review" && (
-                    <p>
-                        Your verification requires manual review.
-                    </p>
-                )}
-
-                {decision === "deny_verification" && (
-                    <p>
-                        Verification was denied.
-                    </p>
-                )}
-
-                {decision === "banned" && (
-                    <p>
-                        This account is banned.
-                    </p>
-                )}
-            </div>
-        );
-    }
-
     return (
         <div>
-            <p>Verification completed.</p>
+            {decision === "additional_verification" && (
+                <p>
+                    Additional verification is required.
+                </p>
+            )}
+            {decision === "manual_review" && (
+                <p>
+                    Your verification requires manual review.
+                </p>
+            )}
+            {decision === "deny_verification" && (
+                <p>
+                    Verification was denied.
+                </p>
+            )}
+            {decision === "banned" && (
+                <p>
+                    This account is banned.
+                </p>
+            )}
+            {decision === "allow" && (
+                <div>
+                    <p>Verification completed.</p>
+                </div>
+            )}
+            <p>{decision}</p>
         </div>
     );
 };

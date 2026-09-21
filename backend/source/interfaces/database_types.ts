@@ -15,10 +15,20 @@ interface User {
     email: string,
     mfa: boolean,
     verified_email: boolean,
-    verified: boolean,
     banned: boolean,
     account_created_at: number,
     registered_at?: string
+}
+
+export type UserWithVerificaiton =
+    User & { status: VerificationStatus, requested_at: string }
+
+export type VerificationStatusType = "pending" | "accepted" | "denied";
+
+export interface VerificationStatus {
+    user_id: string,
+    status: VerificationStatusType,
+    requested_at: string
 }
 
 /**
@@ -79,5 +89,9 @@ export interface RiskAssessmentRecord {
     readonly created_at: Date;
 }
 
+export interface ManualVerificationRow {
+    account_id: string,
+    timestamp: string
+}
 
 export type { User };

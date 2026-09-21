@@ -88,6 +88,9 @@ const HomePage = () => {
             </ul>
           </div>
         )}
+        {isAuth && isVerified && (
+          <p>PLACEHOLDER: ALREADY VERIFIED</p>
+        )}
       </div>
     </div>
 

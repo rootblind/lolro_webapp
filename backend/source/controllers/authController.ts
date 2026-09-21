@@ -3,7 +3,6 @@ import axios from "axios";
 import { config } from "dotenv";
 import botapi from "../config/botapi.js";
 import {
-    isUserVerified,
     putUser,
 } from "../repositories/UserRepo.js";
 import {
@@ -19,6 +18,7 @@ import type {
     User,
 } from "../interfaces/database_types.js";
 import type { BanInfo, MemberInfo } from "../interfaces/response_types.js";
+import { getUserVerificationStatusType } from "../repositories/VerificationStatusRepo.js";
 
 config();
 
@@ -139,7 +139,6 @@ export const getDiscordAuth = async (req: Request, res: Response) => {
             locale: discordUser.locale,
             email: discordUser.email ?? "",
             verified_email: discordUser.verified,
-            verified: false,
             banned: false,
             ban: null,
             member: null,
@@ -194,7 +193,8 @@ export const getDiscordAuth = async (req: Request, res: Response) => {
         }
 
 
-        req.session.user.verified = await isUserVerified(discordUser.id); // check if the user is verified
+        req.session.user.verification_status_type =
+            await getUserVerificationStatusType(discordUser.id); // check if the user is verified
 
         const userObj: User = {
             id: discordUser.id,
@@ -203,7 +203,6 @@ export const getDiscordAuth = async (req: Request, res: Response) => {
             email: discordUser.email ?? "",
             mfa: discordUser.mfa_enabled,
             verified_email: discordUser.verified,
-            verified: req.session.user.verified,
             banned: req.session.user.banned,
             account_created_at: req.session.user.account_created_at
         };

@@ -25,7 +25,7 @@ const isProduction = process.env.NODE_ENV === "production";
 export const fingerprintGraph =
     new FingerprintGraph({
         ...getGraphOptionsFromEnv(),
-        debugLogging: !isProduction,
+        debugLogging: false//!isProduction,
     });
 
 /*

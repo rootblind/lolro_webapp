@@ -74,7 +74,7 @@ if (process.env.NODE_ENV === "production") {
             console.log("All models were initialized.")
             await rehydrateAntiAltState();
 
-            const cron_tasks_source = "./utility_modules/cron_tasks.ts";
+            const cron_tasks_source = "./cron_tasks.js";
             const cronTasks = await load_cron_source(cron_tasks_source);
             if (cronTasks) await init_cron_jobs(cronTasks);
 

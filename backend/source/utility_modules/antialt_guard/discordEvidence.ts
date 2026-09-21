@@ -3,21 +3,23 @@ import type {
 } from "../../interfaces/discord_types.js";
 
 import type { UserInfo } from "../../interfaces/response_types.js";
+import { getUserVerificationStatusType } from "../../repositories/VerificationStatusRepo.js";
 
 import { hashEmail } from "./emailHash.js";
 
-export function buildDiscordAccountEvidence(
+export async function buildDiscordAccountEvidence(
     user: UserInfo,
-): DiscordAccountEvidence {
+): Promise<DiscordAccountEvidence> {
     const emailHash = hashEmail(user.email);
     const joinedGuildAt = user.member?.joined_guild_at;
+    const verificationStatus = await getUserVerificationStatusType(user.id);
     return {
         id: user.id,
         ...(emailHash !== undefined ? { emailHash } : {}),
 
         emailVerified: user.verified_email,
         mfaEnabled: user.mfa,
-        verified: user.verified,
+        verified: Boolean(verificationStatus),
         banned: user.banned,
         avatar: user.avatar,
         hasPremium: user.premium_active,

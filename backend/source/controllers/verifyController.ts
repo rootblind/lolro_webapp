@@ -13,7 +13,7 @@ import type {
 import { buildHashes } from "../utility_modules/antialt_guard/hashing.js";
 import { buildAvailability, normalizeComponents } from "../utility_modules/antialt_guard/normalize.js";
 import type { DiscordAccountEvidence } from "../interfaces/discord_types.js";
-import { getUserById } from "../repositories/UserRepo.js";
+import { getUserById, putUser } from "../repositories/UserRepo.js";
 import { buildDiscordAccountEvidence } from "../utility_modules/antialt_guard/discordEvidence.js";
 import { hashEmail } from "../utility_modules/antialt_guard/emailHash.js";
 import {
@@ -22,6 +22,10 @@ import {
 } from "../repositories/FingerprintRepo.js";
 import { recordObservation as recordIpObservation } from "../repositories/IpRepo.js";
 import { saveAssessment } from "../repositories/RiskAssessmentRepo.js";
+import { getUserVerificationStatusType, setVerificationStatus } from "../repositories/VerificationStatusRepo.js";
+import botapi from "../config/botapi.js";
+import { get_env_var } from "../utility_modules/utility_methods.js";
+import type { VerificationAssessmentResponse } from "../interfaces/response_types.js";
 
 
 config();
@@ -83,7 +87,10 @@ export const getVerifiedStatus = async (req: Request, res: Response) => {
         });
     }
 
-    return res.status(200).json({ success: true, verified: req.session.user.verified });
+    return res.status(200).json({
+        success: true,
+        verification_status: req.session.user.verification_status_type
+    });
 }
 
 export const getVerified = async (req: Request, res: Response) => {
@@ -102,6 +109,13 @@ export const getVerified = async (req: Request, res: Response) => {
         return res.status(400).json({
             success: false,
             error: "The user is neither banned, nor a member of the server"
+        });
+    }
+
+    if (user.verification_status_type) {
+        return res.status(400).json({
+            success: false,
+            error: "The user has a verification status: " + user.verification_status_type
         });
     }
 
@@ -124,7 +138,7 @@ export const getVerified = async (req: Request, res: Response) => {
     const cluster = fingerprintGraph.getClusterForAccount(user.id);
 
     // discord evidence
-    const currentAccount = buildDiscordAccountEvidence(user);
+    const currentAccount = await buildDiscordAccountEvidence(user);
 
     // load discord evidence for other accounts
     const accounts = new Map<string, DiscordAccountEvidence>();
@@ -155,6 +169,7 @@ export const getVerified = async (req: Request, res: Response) => {
 
     for (const accountId of relatedAccountIdsToLoad) {
         const relatedUser = await getUserById(accountId);
+        const relatedUserVerificationStatus = await getUserVerificationStatusType(accountId);
 
         if (relatedUser === false) {
             continue;
@@ -172,7 +187,7 @@ export const getVerified = async (req: Request, res: Response) => {
 
                 emailVerified: Boolean(relatedUser.verified_email),
                 mfaEnabled: Boolean(relatedUser.mfa),
-                verified: Boolean(relatedUser.verified),
+                verified: Boolean(relatedUserVerificationStatus),
                 banned: Boolean(relatedUser.banned),
                 createdAt: relatedUser.account_created_at
             }
@@ -213,47 +228,41 @@ export const getVerified = async (req: Request, res: Response) => {
     }
 
     if (user.banned) {
-        return res.status(403).json({
-            success: false,
-            verified: false,
-            decision: "banned",
-            risk: assessment
-        });
+        return res.status(200).json({
+            success: true,
+            verification_status: "denied"
+        } as VerificationAssessmentResponse);
     }
 
-    // response based on assessment decision
-    switch (assessment.recommendedAction) {
-        case "allow":
-            return res.status(200).json({
-                success: true,
-                verified: true,
-                decision: "allow",
-                risk: assessment
-            });
+    try {
+        const response =
+            await botapi.post<VerificationAssessmentResponse>
+                (
+                    "/verify/assessment",
+                    {
+                        decision: assessment.recommendedAction,
+                        risk: assessment,
+                        guild_id: get_env_var("GUILD")
+                    }
+                );
 
-        case "additional_verification":
-            return res.status(200).json({
-                success: false,
-                verified: false,
-                decision: "additional_verification",
-                risk: assessment
-            });
+        const botDecision = response.data.verification_status;
+        await setVerificationStatus(user.id, botDecision);
+        if (response.data.banned === true) {
+            user.banned = response.data.banned;
+            await putUser(user); // if user gets denied, update the banned column value
+        }
 
-        case "manual_review":
-            return res.status(403).json({
-                success: false,
-                verified: false,
-                decision: "manual_review",
-                risk: assessment
-            });
-
-        case "deny_verification":
-            return res.status(403).json({
-                success: false,
-                verified: false,
-                decision: "deny_verification",
-                risk: assessment
-            });
+        return res.status(200).json({
+            success: true,
+            verification_status: botDecision
+        } as VerificationAssessmentResponse);
+    } catch (error) {
+        console.error(error);
+        return res.status(501).json({
+            success: false,
+            error: "The verification assessment endpoint threw an error\n" + error
+        });
     }
 };
 

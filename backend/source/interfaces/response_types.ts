@@ -1,4 +1,4 @@
-import type { User } from "./database_types";
+import type { User, VerificationStatusType } from "./database_types";
 
 interface BanInfo {
     banned: boolean,
@@ -21,7 +21,8 @@ interface UserInfo extends User {
     member: MemberInfo | null,
     isAdmin: boolean,
     avatar: string | null,
-    premium_active: boolean
+    premium_active: boolean,
+    verification_status_type?: VerificationStatusType | null
 }
 
 export interface UserSession {
@@ -31,6 +32,12 @@ export interface UserSession {
     verified: boolean,
     banned: boolean,
     isMember: boolean
+}
+
+export interface VerificationAssessmentResponse {
+    success: boolean,
+    verification_status: VerificationStatusType,
+    banned?: boolean
 }
 
 export type { BanInfo, MemberInfo, UserInfo };
