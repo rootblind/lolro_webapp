@@ -5,9 +5,12 @@ import {
     setADN,
     setIP,
     getVerifiedStatus,
-    getGraph
+    getGraph,
+    manualVerification,
+    getRequestStatus
 } from "../controllers/verifyController.js";
 import requireLogin from "../middleware/requireLogin.js";
+import authenticate from "../middleware/authenticate.js";
 
 const verifyRouter = express.Router();
 
@@ -16,8 +19,10 @@ verifyRouter.get("/graph/", getGraph);
 
 verifyRouter.get("/", requireLogin, getVerified);
 verifyRouter.get("/status/", requireLogin, getVerifiedStatus);
+verifyRouter.get("/request_status/", authenticate, getRequestStatus)
 
 verifyRouter.post("/adn/", requireLogin, setADN);
 verifyRouter.post("/ip/", requireLogin, setIP);
+verifyRouter.post("/manual_review/", authenticate, manualVerification);
 
 export default verifyRouter;

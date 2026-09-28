@@ -27,7 +27,19 @@ interface MemberInfo {
 interface UserInfo extends User {
     locale: string,
     ban: BanInfo | null,
-    member: MemberInfo | null
+    member: MemberInfo | null,
+    isAdmin: boolean,
+    avatar: string | null,
+    premium_active: boolean,
+    verification_status_type?: VerificationStatusType | null
 }
 
+export type VerificationStatusType = "pending" | "accepted" | "denied";
+
 export type { User, UserInfo, MemberInfo, BanInfo };
+
+export type RiskAction =
+    | "allow" // simply verify the user
+    | "additional_verification" // verify the user but log the risk assessment
+    | "manual_review" // log the assessment but require manual moderator verification, no verification given
+    | "deny_verification"; // deny verification and ban the account

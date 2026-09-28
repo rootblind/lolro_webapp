@@ -9,6 +9,7 @@
 import type { CronTaskBuilder } from "../interfaces/helper_types.js";
 import { clearExpiredFingerprintData } from "../repositories/FingerprintRepo.js";
 import { clearExpiredIps } from "../repositories/IpRepo.js";
+import { deleteExpiredPendingVerification } from "../repositories/VerificationStatusRepo.js";
 import { fingerprintGraph } from "./antialt_guard/antiAltEngine.js";
 
 export const removeExpiredIPs: CronTaskBuilder = {
@@ -28,6 +29,15 @@ export const clearFpData: CronTaskBuilder = {
         const TTL = 365 * 3; // 3 years
         await clearExpiredFingerprintData(TTL);
         fingerprintGraph.pruneExpiredObservations();
+    },
+    runCondition: async () => true
+}
+
+export const expiredPendingVerification: CronTaskBuilder = {
+    name: "Clear expired pending verification rows",
+    schedule: "5 * * * *",
+    job: async () => {
+        await deleteExpiredPendingVerification();
     },
     runCondition: async () => true
 }

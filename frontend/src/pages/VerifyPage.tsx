@@ -4,27 +4,19 @@ import api from "../utils/axios";
 import LoadingComponent from "../components/LoadingComponent";
 import { useSessionContext } from "../context/SessionContext";
 import getBrowserADN from "../utils/adn";
-
-type VerificationDecision =
-    | "allow"
-    | "additional_verification"
-    | "manual_review"
-    | "deny_verification"
-    | "banned";
+import { VerificationStatusType } from "../utils/data_types";
 
 interface VerificationResponse {
     success: boolean;
-    verified: boolean;
-    decision?: VerificationDecision;
-    awaits_manual_verification?: boolean;
+    verification_status: VerificationStatusType;
     risk?: unknown;
     error?: string;
 }
 
 const VerifyPage = () => {
-    const { setVerified } = useSessionContext();
+    const { verificationStatus, setVerificationStatus } = useSessionContext();
     const [loading, setLoading] = useState(true);
-    const [decision, setDecision] = useState<VerificationDecision | null>(null);
+
 
     const hasRun = useRef(false); // avoid double invoking
 
@@ -68,8 +60,7 @@ const VerifyPage = () => {
                         },
                     );
 
-                setVerified(response.data.verified);
-                setDecision(response.data.decision ?? null);
+                setVerificationStatus(response.data.verification_status);
                 if (cancelled) {
                     return;
                 }
@@ -80,12 +71,10 @@ const VerifyPage = () => {
 
                 console.error("Verification failed:", error);
 
-                // getVerified returns HTTP 403 for the "banned" users and deny_verification members. 
-                // Axios throws on any non 2xx response
+               
                 if (isAxiosError<VerificationResponse>(error) && error.response?.data) {
-                    const data = error.response.data;
-                    setVerified(Boolean(data.verified));
-                    setDecision(data.decision ?? null);
+                    // const data = error.response.data;
+                    // TODO: HANDLE ERRORS
                     return;
                 }
             } finally {
@@ -98,39 +87,14 @@ const VerifyPage = () => {
         return () => {
             cancelled = true;
         };
-    }, [setVerified]);
+    }, [setVerificationStatus]);
 
     if (loading) {
         return <LoadingComponent />;
     }
     return (
         <div>
-            {decision === "additional_verification" && (
-                <p>
-                    Additional verification is required.
-                </p>
-            )}
-            {decision === "manual_review" && (
-                <p>
-                    Your verification requires manual review.
-                </p>
-            )}
-            {decision === "deny_verification" && (
-                <p>
-                    Verification was denied.
-                </p>
-            )}
-            {decision === "banned" && (
-                <p>
-                    This account is banned.
-                </p>
-            )}
-            {decision === "allow" && (
-                <div>
-                    <p>Verification completed.</p>
-                </div>
-            )}
-            <p>{decision}</p>
+            <p>Response: {verificationStatus}</p>
         </div>
     );
 };

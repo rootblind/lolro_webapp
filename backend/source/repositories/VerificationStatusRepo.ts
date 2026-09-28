@@ -33,4 +33,17 @@ export const getUserVerificationStatusType =
         );
 
         return data[0]?.status ?? null;
+    };
+
+/**
+ * Deletes all rows older than 3 days where status = 'pending'
+ */
+export const deleteExpiredPendingVerification =
+    async () => {
+        await database.query(
+            `DELETE FROM verification_status
+            WHERE requested_at < CURRENT_TIMESTAMP - INTERVAL '3 days'
+            AND status=$1;`,
+            ["pending"]
+        )
     }

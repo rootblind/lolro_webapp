@@ -22,10 +22,14 @@ import {
 } from "../repositories/FingerprintRepo.js";
 import { recordObservation as recordIpObservation } from "../repositories/IpRepo.js";
 import { saveAssessment } from "../repositories/RiskAssessmentRepo.js";
-import { getUserVerificationStatusType, setVerificationStatus } from "../repositories/VerificationStatusRepo.js";
+import {
+    createVerificationStatus,
+    getUserVerificationStatusType
+} from "../repositories/VerificationStatusRepo.js";
 import botapi from "../config/botapi.js";
 import { get_env_var } from "../utility_modules/utility_methods.js";
 import type { VerificationAssessmentResponse } from "../interfaces/response_types.js";
+import type { VerificationStatusType } from "../interfaces/database_types.js";
 
 
 config();
@@ -79,6 +83,7 @@ export const getGraph = async (req: Request, res: Response) => {
 
 }
 
+// for front end
 export const getVerifiedStatus = async (req: Request, res: Response) => {
     if (!req.session?.user) {
         return res.status(500).json({
@@ -92,6 +97,25 @@ export const getVerifiedStatus = async (req: Request, res: Response) => {
         verification_status: req.session.user.verification_status_type
     });
 }
+
+// for the discord bot
+export const getRequestStatus =
+    async (req: Request, res: Response) => {
+        const { user_id } = req.query;
+        if (typeof user_id !== "string") {
+            return res.status(400).json({
+                success: false,
+                error: "user_id must be a member snowflake."
+            });
+        }
+
+        const verificationStatus = await getUserVerificationStatusType(user_id);
+
+        return res.status(200).json({
+            success: true,
+            verification_status: verificationStatus
+        });
+    }
 
 export const getVerified = async (req: Request, res: Response) => {
     if (!req.session?.user) {
@@ -112,11 +136,11 @@ export const getVerified = async (req: Request, res: Response) => {
         });
     }
 
-    if (user.verification_status_type) {
-        return res.status(400).json({
-            success: false,
-            error: "The user has a verification status: " + user.verification_status_type
-        });
+    if (user.verification_status_type) { // if the user is already verified, return the status directly
+        return res.status(200).json({
+            success: true,
+            verification_status: user.verification_status_type
+        } as VerificationAssessmentResponse);
     }
 
     if (!req.session.identity) {
@@ -228,6 +252,7 @@ export const getVerified = async (req: Request, res: Response) => {
     }
 
     if (user.banned) {
+        await createVerificationStatus(user.id, "denied");
         return res.status(200).json({
             success: true,
             verification_status: "denied"
@@ -236,7 +261,7 @@ export const getVerified = async (req: Request, res: Response) => {
 
     try {
         const response =
-            await botapi.post<VerificationAssessmentResponse>
+            await botapi.post<VerificationAssessmentResponse & { error?: string }>
                 (
                     "/verify/assessment",
                     {
@@ -246,8 +271,12 @@ export const getVerified = async (req: Request, res: Response) => {
                     }
                 );
 
+        if (!response.data.success) {
+            console.error(response.data.error);
+        }
+
         const botDecision = response.data.verification_status;
-        await setVerificationStatus(user.id, botDecision);
+        await createVerificationStatus(user.id, botDecision);
         if (response.data.banned === true) {
             user.banned = response.data.banned;
             await putUser(user); // if user gets denied, update the banned column value
@@ -426,9 +455,50 @@ export const setIP = async (req: Request, res: Response) => {
     return res.status(201).json({ success: true });
 }
 
-/* must be called in this order
+/* frontend must call in this order
     setADN,
     setIP,
     getVerified,
     getVerifiedStatus
 */
+
+
+export const manualVerification = async (req: Request, res: Response) => {
+    const { user_id, status } = req.body as { user_id: string, status: VerificationStatusType };
+    if (typeof user_id !== "string") {
+        return res.status(400).json({
+            success: false,
+            error: "user_id must be a valid user snowflake"
+        });
+    }
+
+    if (
+        status !== "accepted" &&
+        status !== "denied"
+    ) {
+        return res.status(400).json({
+            success: false,
+            error: "The status sent by a manual review must be either 'accepted' or 'denied'."
+        });
+    }
+
+    const user = await getUserById(user_id);
+    if (!user) {
+        return res.status(400).json({
+            success: false,
+            error: "Failed to fetch the user row. ID might not be valid or registered."
+        });
+    }
+
+    const response = await createVerificationStatus(user_id, status);
+
+    if (status === "denied") {
+        user.banned = true;
+        await putUser(user);
+    }
+
+    return res.status(200).json({
+        success: true,
+        verification_status: response
+    });
+}

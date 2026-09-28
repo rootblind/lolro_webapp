@@ -194,7 +194,7 @@ export const getDiscordAuth = async (req: Request, res: Response) => {
 
 
         req.session.user.verification_status_type =
-            await getUserVerificationStatusType(discordUser.id); // check if the user is verified
+            await getUserVerificationStatusType(discordUser.id); // get the verification status of the user
 
         const userObj: User = {
             id: discordUser.id,
