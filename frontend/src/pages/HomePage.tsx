@@ -6,7 +6,13 @@ import { useState } from "react";
 //import api from "../utils/axios"
 
 const HomePage = () => {
-  const {user, isAuth, verificationStatus} = useSessionContext();
+  const {
+    user, 
+    isAuth, 
+    verificationStatus,
+    isMember,
+    isBanned
+  } = useSessionContext();
   const [captchaSolved, setCaptchaSolved] = useState(false);
 
   const handleCaptchaSolved = () => {
@@ -44,67 +50,76 @@ const HomePage = () => {
           </>
     
   } else {
-    switch(verificationStatus) {
-      case null: {
-        content =
-              <>
-                <p className="text-gray-500 mb-4 text-lg">
-                  It seems your account is not verified, proceed with verification to unlock full access to LOLRO.
-                </p>
-                
-                {captchaSolved ? (
-                  <Link to={"/verify"}>
-                    <button className="btn btn-success btn-lg px-8">
-                      Verify
-                    </button>
-                  </Link>
-                ) : (
-                  <CaptchaForm onSolved={handleCaptchaSolved}/>
-                )}
+    if(isMember || isBanned) {
+      switch(verificationStatus) {
+        case null: {
+          content =
+                <>
+                  <p className="text-gray-500 mb-4 text-lg">
+                    It seems your account is not verified, proceed with verification to unlock full access to LOLRO.
+                  </p>
+                  
+                  {captchaSolved ? (
+                    <Link to={"/verify"}>
+                      <button className="btn btn-success btn-lg px-8">
+                        Verify
+                      </button>
+                    </Link>
+                  ) : (
+                    <CaptchaForm onSolved={handleCaptchaSolved}/>
+                  )}
 
-                <p className="text-sm text-gray-400 max-w-xs">
-                  By verifying your account, you agree to our <Link to="/privacy" className="underline text-blue-600">Privacy Policy</Link> and <Link to={"/terms"} className='underline text-blue-600'>Terms of Service</Link>
-                  <br />
-                  and give consent to the collection of additional data such as:
-                </p>
-                <ul className="list-disc list-inside mb-4 text-sm text-gray-400 max-w-xs">
-                  <li>IP address</li>
-                  <li>Browser / device data</li>
-                  <li>Cookies & session identifiers</li>
-                </ul>
-              </>
-        break;
-      }
-      case "accepted": {
-        content = 
-          <>
-            <p className="text-gray-500 mb-4 text-lg">
-              Your verification status: accepted
-            </p>
-          </>
-        break;
-      }
-      case "pending": {
-        content =
-          <>
-            <div className="text-gray-500 mb-4 text-lg">
-              <p>Your verification request is on pending.</p>
-              <p>A verification is on pending for 3 days at most.</p>
-              <p>You can attempt to verify again if your request is not reviewed on time.</p>
-            </div>
-          </>
-
+                  <p className="text-sm text-gray-400 max-w-xs">
+                    By verifying your account, you agree to our <Link to="/privacy" className="underline text-blue-600">Privacy Policy</Link> and <Link to={"/terms"} className='underline text-blue-600'>Terms of Service</Link>
+                    <br />
+                    and give consent to the collection of additional data such as:
+                  </p>
+                  <ul className="list-disc list-inside mb-4 text-sm text-gray-400 max-w-xs">
+                    <li>IP address</li>
+                    <li>Browser / device data</li>
+                    <li>Cookies & session identifiers</li>
+                  </ul>
+                </>
           break;
+        }
+        case "accepted": {
+          content = 
+            <>
+              <p className="text-gray-500 mb-4 text-lg">
+                Your verification status: accepted
+              </p>
+            </>
+          break;
+        }
+        case "pending": {
+          content =
+            <>
+              <div className="text-gray-500 mb-4 text-lg">
+                <p>Your verification request is on pending.</p>
+                <p>A verification is on pending for 3 days at most.</p>
+                <p>You can attempt to verify again if your request is not reviewed on time.</p>
+              </div>
+            </>
+
+            break;
+        }
+        case "denied": {
+          content =
+            <>
+              <div className="text-gray-500 mb-4 text-lg">
+                <p>Your verification status: denied</p>
+              </div>
+            </>
+          break;
+        }
       }
-      case "denied": {
-        content =
-          <>
-            <div className="text-gray-500 mb-4 text-lg">
-              <p>Your verification status: denied</p>
-            </div>
-          </>
-        break;
-      }
+    } else {
+      content = 
+        <>
+          <p className="text-gray-500 mb-4 text-lg">
+            You must be a server member in order to verify!
+          </p>
+        </>
     }
     if(verificationStatus) {
       content = (

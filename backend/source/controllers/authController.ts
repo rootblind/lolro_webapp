@@ -18,7 +18,7 @@ import type {
     User,
 } from "../interfaces/database_types.js";
 import type { BanInfo, MemberInfo } from "../interfaces/response_types.js";
-import { getUserVerificationStatusType } from "../repositories/VerificationStatusRepo.js";
+import { deleteVerificationStatus, getUserVerificationStatusType } from "../repositories/VerificationStatusRepo.js";
 
 config();
 
@@ -192,9 +192,9 @@ export const getDiscordAuth = async (req: Request, res: Response) => {
             console.error("Failed to fetch Discord member information", error);
         }
 
+        const verif_stat = await getUserVerificationStatusType(discordUser.id); // get the verification status of the user
+        req.session.user.verification_status_type = verif_stat;
 
-        req.session.user.verification_status_type =
-            await getUserVerificationStatusType(discordUser.id); // get the verification status of the user
 
         const userObj: User = {
             id: discordUser.id,
@@ -209,6 +209,9 @@ export const getDiscordAuth = async (req: Request, res: Response) => {
 
         try {
             await putUser(userObj);
+            if (!userObj.banned && verif_stat === "denied") {
+                await deleteVerificationStatus(userObj.id);
+            }
         } catch (error) {
             console.error("Failed to persist Discord user", error);
         }

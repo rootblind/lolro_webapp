@@ -20,7 +20,9 @@ interface SessionContextType {
     isBanned: boolean,
     setIsBanned: Dispatch<SetStateAction<boolean>>,
     verificationStatus: VerificationStatusType | null,
-    setVerificationStatus: Dispatch<SetStateAction<VerificationStatusType | null>>
+    setVerificationStatus: Dispatch<SetStateAction<VerificationStatusType | null>>,
+    isMember: boolean,
+    setIsMember: Dispatch<SetStateAction<boolean>>
 }
 
 const SessionContext = createContext<SessionContextType | null>(null);
@@ -32,6 +34,7 @@ export const SessionContextProvider = ({ children }: SessionContextProviderProps
     const [isRateLimited, setIsRateLimited] = useState(false);
     const [isBanned, setIsBanned] = useState(false);
     const [verificationStatus, setVerificationStatus] = useState<VerificationStatusType | null>(null);
+    const [isMember, setIsMember] = useState(false);
 
     const handleRateLimited = () => setIsRateLimited(true);
 
@@ -44,6 +47,7 @@ export const SessionContextProvider = ({ children }: SessionContextProviderProps
                     setIsAuth(res.data.loggedIn);
                     setIsBanned(res.data.user?.banned ?? false);
                     setVerificationStatus(res.data.user.verification_status_type ?? null)
+                    setIsMember(Boolean(res.data.user.member))
                 }
 
             } catch (error) {
@@ -77,7 +81,8 @@ export const SessionContextProvider = ({ children }: SessionContextProviderProps
             loading, setLoading,
             isRateLimited, setIsRateLimited,
             isBanned, setIsBanned,
-            verificationStatus, setVerificationStatus
+            verificationStatus, setVerificationStatus,
+            isMember, setIsMember
         }}>
             {children}
         </SessionContext>

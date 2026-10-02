@@ -40,10 +40,9 @@ export const verifyCaptcha = async (req: Request, res: Response) => {
         return res.status(400).json({ success: false, message: "The captcha doesn't exist" });
     }
 
-    // TODO uncomment AFTER DEVELOPMENT
-    /*if (captchaInput.trim().toLowerCase() !== req.session.captcha.text.toLowerCase()) {
+    if (captchaInput.trim().toLowerCase() !== req.session.captcha.text.toLowerCase()) {
         return res.status(400).json({ success: false, message: "Wrong input" });
-    }*/
+    }
 
     req.session.captcha.solved = true;
     return res.status(200).json({ success: true, message: "Captcha solved" });

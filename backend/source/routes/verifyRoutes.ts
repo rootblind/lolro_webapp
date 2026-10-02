@@ -15,7 +15,7 @@ import authenticate from "../middleware/authenticate.js";
 const verifyRouter = express.Router();
 
 // dev only
-verifyRouter.get("/graph/", getGraph);
+verifyRouter.get("/graph/", authenticate, getGraph);
 
 verifyRouter.get("/", requireLogin, getVerified);
 verifyRouter.get("/status/", requireLogin, getVerifiedStatus);
