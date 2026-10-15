@@ -14,15 +14,7 @@ the Discord bot for a final accept/deny/manual-review decision.
 - [Overview](#overview)
 - [How it works](#how-it-works)
 - [Verification flow](#verification-flow)
-- [API reference](#api-reference)
-- [Configuration](#configuration)
-- [Database schema](#database-schema)
 - [Installation](#installation)
-- [Running locally](#running-locally)
-- [Project structure](#project-structure)
-- [Moderator tools](#moderator-tools)
-- [Known issues / maintainer notes](#known-issues--maintainer-notes)
-- [License](#license)
 
 ---
 
